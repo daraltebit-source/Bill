@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700;800;900&family=Work+Sans:wght@400;500&family=Noto+Sans+Arabic:wght@400;600;700&family=Manrope:wght@400;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-headline: "Public Sans", sans-serif;
+  --font-mono: "Work Sans", ui-monospace, SFMono-Regular, monospace;
+  --font-arabic: "Noto Sans Arabic", sans-serif;
+  --font-display: "Manrope", sans-serif;
+
+  /* Sleek Interface Theme */
+  --color-surface: #0B0E14;
+  --color-surface-dim: #0B0E14;
+  --color-surface-bright: #151921;
+  --color-surface-container-lowest: #0B0E14;
+  --color-surface-container-low: #11151C;
+  --color-surface-container: #151921;
+  --color-surface-container-high: #1E293B;
+  --color-surface-container-highest: #262B35;
+  --color-on-surface: #F8FAFC;
+  --color-on-surface-variant: #94A3B8;
+  --color-inverse-surface: #F8FAFC;
+  --color-inverse-on-surface: #0B0E14;
+  --color-outline: #1F2937;
+  --color-outline-variant: #262B35;
+  --color-primary: #6366F1;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #1E293B;
+  --color-on-primary-container: #F8FAFC;
+  --color-secondary: #94A3B8;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #1E293B;
+  --color-on-secondary-container: #F8FAFC;
+  --color-tertiary: #10B981;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #064E3B;
+  --color-on-tertiary-container: #D1FAE5;
+  --color-error: #EF4444;
+  --color-on-error: #ffffff;
+  --color-error-container: #7F1D1D;
+  --color-on-error-container: #FEE2E2;
+
+  --animate-spin-slow: spin-slow 3s linear infinite;
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-sans antialiased;
+  }
+
+  [dir="rtl"] {
+    font-family: "Noto Sans Arabic", "Inter", sans-serif;
+  }
+}
+
+.bill-card-shadow {
+  box-shadow: none;
+  border: 1px solid var(--color-outline-variant);
+}
+
+.card {
+  @apply bg-surface-container border border-outline-variant rounded-2xl p-6 transition-all;
+}
+
+.sidebar-nav-item {
+  @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-on-surface-variant transition-all hover:bg-surface-container-high/50;
+}
+
+.sidebar-nav-item.active {
+  @apply bg-secondary-container text-on-surface shadow-sm;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
