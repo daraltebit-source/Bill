@@ -16,6 +16,7 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
   const [dateRangeType, setDateRangeType] = useState("All");
   const [customRange, setCustomRange] = useState({ start: "", end: "" });
   const [search, setSearch] = useState("");
+  const [searchTarget, setSearchTarget] = useState<"provider" | "account">("provider");
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [billToDelete, setBillToDelete] = useState<Bill | null>(null);
@@ -34,7 +35,9 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
   };
 
   const filteredBills = bills.filter(bill => {
-    const matchesSearch = bill.provider.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = searchTarget === "provider" 
+      ? bill.provider.toLowerCase().includes(search.toLowerCase())
+      : (bill.accountNumber || "").toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "All" || bill.status === statusFilter;
     const matchesType = typeFilter === "All" || bill.serviceType === typeFilter;
     const matchesBranch = branchFilter === "All" || bill.branchName === branchFilter;
@@ -145,68 +148,117 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
 
   return (
     <main className="mt-8 px-4 max-w-2xl mx-auto pb-32">
+      {/* Header with technical label */}
+      <div className="flex flex-col gap-2 blueprint-header -mx-4 px-4 mb-8">
+        <div className="flex items-center justify-between">
+          <h1 className="font-headline text-3xl font-bold tracking-tight text-on-surface">{t.bills}</h1>
+          <div className="flex flex-col items-end">
+            <span className="technical-label">{t.ledger_status || "Ledger Status"}</span>
+            <div className="flex items-center gap-1.5 mt-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+              <span className="text-[10px] font-mono font-bold text-primary uppercase">Active Database</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Search and Filter Section */}
       <section className="mb-10 flex flex-col gap-6">
-        <div className="flex items-center gap-4">
-          <div className="relative group flex-1">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-on-surface-variant/40">
-              <Search size={20} />
+        <div className="flex flex-col gap-4 bg-surface-container-low/40 p-5 rounded-3xl border border-outline/50 bill-card-shadow">
+          <div className="flex items-center justify-between px-1">
+            <span className="technical-label opacity-60 italic">{t.search_by}</span>
+            <div className="flex bg-surface-container-high/60 backdrop-blur-sm rounded-xl p-1 border border-white/5">
+              <button 
+                onClick={() => setSearchTarget("provider")}
+                className={cn(
+                  "px-4 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all duration-300",
+                  searchTarget === "provider" 
+                    ? "bg-primary text-on-primary shadow-lg shadow-primary/20 scale-105" 
+                    : "text-on-surface-variant/40 hover:text-on-surface-variant"
+                )}
+              >
+                {t.provider}
+              </button>
+              <button 
+                onClick={() => setSearchTarget("account")}
+                className={cn(
+                  "px-4 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all duration-300",
+                  searchTarget === "account" 
+                    ? "bg-primary text-on-primary shadow-lg shadow-primary/20 scale-105" 
+                    : "text-on-surface-variant/40 hover:text-on-surface-variant"
+                )}
+              >
+                {t.account_number}
+              </button>
             </div>
-            <input 
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#11151C] border border-outline rounded-xl py-4 pl-12 pr-4 font-sans text-on-surface focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-on-surface-variant/30"
-              placeholder={t.search_placeholder}
-            />
           </div>
           
-          <button 
-            onClick={handleImportClick}
-            className="h-[58px] px-6 bg-primary/10 border border-primary/20 text-primary rounded-xl flex items-center gap-3 hover:bg-primary/20 transition-all active:scale-[0.98] group"
-          >
-            <Upload size={20} className="group-hover:-translate-y-1 transition-transform" />
-            <span className="font-mono text-[11px] font-bold uppercase tracking-wider hidden sm:inline">{t.import}</span>
-          </button>
-          
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            accept=".csv" 
-            className="hidden" 
-          />
+          <div className="flex items-center gap-4">
+            <div className="relative group flex-1">
+              <div className="absolute inset-y-0 start-5 flex items-center pointer-events-none text-on-surface-variant/40 group-focus-within:text-primary transition-all group-focus-within:scale-110">
+                <Search size={18} strokeWidth={2.5} />
+              </div>
+              <input 
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-surface/40 border border-outline rounded-2xl py-4.5 ps-14 pe-5 font-sans text-on-surface focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all placeholder:text-on-surface-variant/20 shadow-inner"
+                placeholder={searchTarget === "provider" ? t.search_placeholder : (language === "AR" ? "البحث برقم الحساب..." : "Search by account number...")}
+              />
+            </div>
+            
+            <button 
+              onClick={handleImportClick}
+              className="h-[60px] px-6 bg-surface-container-high/60 border border-outline text-on-surface rounded-2xl flex items-center gap-3 hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-[0.98] group shadow-sm"
+            >
+              <Upload size={20} strokeWidth={2.5} className="group-hover:-translate-y-1 transition-transform" />
+              <span className="technical-label !text-current hidden sm:inline">{t.import}</span>
+            </button>
+            
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+              accept=".csv" 
+              className="hidden" 
+            />
+          </div>
         </div>
 
         {importStatus && (
           <div className={cn(
-            "p-3 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2",
-            importStatus.type === 'success' ? "bg-tertiary/10 text-tertiary border border-tertiary/20" : "bg-error/10 text-error border border-error/20"
+            "p-4 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-2 bill-card-shadow",
+            importStatus.type === 'success' ? "bg-tertiary/5 text-tertiary border-tertiary/20" : "bg-error/5 text-error border-error/20"
           )}>
-            {importStatus.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-            <span className="text-[12px] font-medium font-mono">{importStatus.message}</span>
+            <div className={cn(
+              "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+              importStatus.type === 'success' ? "bg-tertiary/10" : "bg-error/10"
+            )}>
+              {importStatus.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+            </div>
+            <span className="text-[13px] font-bold font-mono tracking-tight uppercase leading-none">{importStatus.message}</span>
             <button 
               onClick={() => setImportStatus(null)}
-              className="ml-auto opacity-50 hover:opacity-100 font-mono text-[10px] uppercase font-bold"
+              className="ml-auto p-2 opacity-50 hover:opacity-100 transition-opacity"
             >
-              {language === "AR" ? "تجاهل" : "Dismiss"}
+              <FileText size={14} className="rotate-45" />
             </button>
           </div>
         )}
         
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-50">{t.status}:</span>
-            <div className="flex gap-2 overflow-x-auto pb-2 flex-1 no-scrollbar">
+        <div className="flex flex-col gap-6 bg-surface-container-low/20 p-6 rounded-3xl border border-outline/50 bill-card-shadow">
+          <div className="space-y-3">
+            <span className="technical-label px-1">{t.status}</span>
+            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setStatusFilter(cat)}
                   className={cn(
-                    "px-4 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
+                    "px-5 py-2.5 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
                     statusFilter === cat 
                       ? "bg-primary text-on-primary border-primary shadow-lg shadow-primary/20" 
-                      : "bg-surface-container-high text-on-surface-variant border-white/5 hover:bg-outline-variant"
+                      : "bg-surface-container-high text-on-surface-variant border-outline-variant hover:border-primary/50"
                   )}
                 >
                   {getTranslatedLabel(cat)}
@@ -215,79 +267,61 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-50">{t.asset}:</span>
-            <div className="flex gap-2 overflow-x-auto pb-2 flex-1 no-scrollbar">
-              {serviceFilters.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setTypeFilter(cat)}
-                  className={cn(
-                    "px-4 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
-                    typeFilter === cat 
-                      ? "bg-primary text-on-primary border-primary shadow-lg shadow-primary/20" 
-                      : "bg-surface-container-high text-on-surface-variant border-white/5 hover:bg-outline-variant"
-                  )}
-                >
-                  {getTranslatedLabel(cat)}
-                </button>
-              ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <span className="technical-label px-1">{t.asset}</span>
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                {serviceFilters.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setTypeFilter(cat)}
+                    className={cn(
+                      "px-5 py-2.5 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
+                      typeFilter === cat 
+                        ? "bg-primary text-on-primary border-primary shadow-lg shadow-primary/20" 
+                        : "bg-surface-container-high text-on-surface-variant border-outline-variant hover:border-primary/50"
+                    )}
+                  >
+                    {getTranslatedLabel(cat)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <span className="technical-label px-1">{t.branch}</span>
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                {branchOptions.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setBranchFilter(opt)}
+                    className={cn(
+                      "px-5 py-2.5 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
+                      branchFilter === opt 
+                        ? "bg-primary text-on-primary border-primary shadow-lg shadow-primary/20" 
+                        : "bg-surface-container-high text-on-surface-variant border-outline-variant hover:border-primary/50"
+                    )}
+                  >
+                    {opt === "All" ? getTranslatedLabel(opt) : opt}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-50">{t.branch}:</span>
-            <div className="flex gap-2 overflow-x-auto pb-2 flex-1 no-scrollbar">
-              {branchOptions.map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => setBranchFilter(opt)}
-                  className={cn(
-                    "px-4 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
-                    branchFilter === opt 
-                      ? "bg-primary text-on-primary border-primary shadow-lg shadow-primary/20" 
-                      : "bg-surface-container-high text-on-surface-variant border-white/5 hover:bg-outline-variant"
-                  )}
-                >
-                  {opt === "All" ? getTranslatedLabel(opt) : opt}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-50">{t.cycle}:</span>
-            <div className="flex gap-2 overflow-x-auto pb-2 flex-1 no-scrollbar">
-              {recurringOptions.map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => setRecurringFilter(opt)}
-                  className={cn(
-                    "px-4 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
-                    recurringFilter === opt 
-                      ? "bg-primary text-on-primary border-primary shadow-lg shadow-primary/20" 
-                      : "bg-surface-container-high text-on-surface-variant border-white/5 hover:bg-outline-variant"
-                  )}
-                >
-                  {getTranslatedLabel(opt)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-50">{t.period}:</span>
-              <div className="flex gap-2 overflow-x-auto pb-2 flex-1 no-scrollbar">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+            <div className="space-y-3">
+              <span className="technical-label px-1">{t.period}</span>
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                 {dateRangeOptions.map((opt) => (
                   <button
                     key={opt}
                     onClick={() => setDateRangeType(opt)}
                     className={cn(
-                      "px-4 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
+                      "px-5 py-2.5 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
                       dateRangeType === opt 
                         ? "bg-primary text-on-primary border-primary shadow-lg shadow-primary/20" 
-                        : "bg-surface-container-high text-on-surface-variant border-white/5 hover:bg-outline-variant"
+                        : "bg-surface-container-high text-on-surface-variant border-outline-variant hover:border-primary/50"
                     )}
                   >
                     {getTranslatedLabel(opt)}
@@ -297,24 +331,24 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
             </div>
 
             {dateRangeType === "Custom" && (
-              <div className="flex items-center gap-4 bg-surface-container-low p-4 rounded-xl border border-outline animate-in fade-in slide-in-from-top-2">
-                <div className="flex-1 flex flex-col gap-1">
-                  <span className="text-[9px] font-bold text-on-surface-variant uppercase opacity-50">{t.from}</span>
+              <div className="flex items-center gap-4 bg-surface-container-highest/20 p-3 rounded-2xl border border-outline/50 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="flex-1 flex flex-col gap-0.5 px-2">
+                  <span className="text-[8px] font-bold text-on-surface-variant uppercase tracking-wider opacity-60">{t.from}</span>
                   <input 
                     type="date" 
                     value={customRange.start}
                     onChange={(e) => setCustomRange(prev => ({ ...prev, start: e.target.value }))}
-                    className="bg-transparent text-sm font-mono text-primary outline-none"
+                    className="bg-transparent text-[11px] font-mono text-on-surface outline-none cursor-pointer"
                   />
                 </div>
-                <div className="w-px h-8 bg-outline-variant opacity-30" />
-                <div className="flex-1 flex flex-col gap-1">
-                  <span className="text-[9px] font-bold text-on-surface-variant uppercase opacity-50">{t.to}</span>
+                <div className="w-px h-6 bg-outline-variant opacity-30" />
+                <div className="flex-1 flex flex-col gap-0.5 px-2">
+                  <span className="text-[8px] font-bold text-on-surface-variant uppercase tracking-wider opacity-60">{t.to}</span>
                   <input 
                     type="date" 
                     value={customRange.end}
                     onChange={(e) => setCustomRange(prev => ({ ...prev, end: e.target.value }))}
-                    className="bg-transparent text-sm font-mono text-primary outline-none"
+                    className="bg-transparent text-[11px] font-mono text-on-surface outline-none cursor-pointer"
                   />
                 </div>
               </div>
@@ -326,14 +360,27 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
       {/* Bill Cards List */}
       <div className="space-y-6">
         <div className="flex items-center justify-between px-1 mb-2">
-           <h2 className="text-[14px] font-bold text-on-surface-variant/60 uppercase tracking-[0.2em]">{t.showing} {filteredBills.length} {t.records}</h2>
+           <div className="flex flex-col">
+              <h2 className="text-[12px] font-bold text-on-surface font-headline tracking-tight">{t.showing} {filteredBills.length} {t.records}</h2>
+              <span className="technical-label !opacity-40">System-wide Audit</span>
+           </div>
+           <div className="flex items-center gap-2">
+              <div className="w-24 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+                <div className="h-full bg-primary" style={{ width: `${(filteredBills.length / bills.length) * 100}%` }} />
+              </div>
+           </div>
         </div>
-        {filteredBills.map(bill => (
-          <BillListItem key={bill.id} bill={bill} onDelete={handleDeleteBill} onViewDetails={setSelectedBill} language={language} />
-        ))}
+        <div className="space-y-4">
+          {filteredBills.map(bill => (
+            <BillListItem key={bill.id} bill={bill} onDelete={handleDeleteBill} onViewDetails={setSelectedBill} language={language} />
+          ))}
+        </div>
         {filteredBills.length === 0 && (
-          <div className="py-20 text-center card bg-transparent border-dashed">
-            <p className="font-mono text-on-surface-variant italic">{t.no_records}</p>
+          <div className="py-24 text-center card bg-surface-container-low/20 border-dashed flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant/20">
+              <FileText size={32} />
+            </div>
+            <p className="font-mono text-sm text-on-surface-variant/40 italic font-bold tracking-tight uppercase">{t.no_records}</p>
           </div>
         )}
       </div>
@@ -354,14 +401,14 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
         language={language}
       />
 
-      {/* Export Actions */}
-      <div className="mt-12 flex justify-center gap-4">
-        <button className="flex items-center gap-3 px-8 py-3.5 border border-outline rounded-xl font-mono text-[11px] font-bold uppercase tracking-widest text-on-surface hover:bg-surface-container-low transition-all">
-          <FileText size={18} />
+      {/* Export Actions - Technical Style */}
+      <div className="mt-16 pt-8 border-t border-outline/30 flex flex-col sm:flex-row justify-center gap-6">
+        <button className="group flex items-center gap-4 px-10 py-4.5 border border-outline rounded-2xl font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface hover:bg-primary hover:text-on-primary hover:border-primary transition-all duration-300 active:scale-95 bill-card-shadow">
+          <FileText size={18} className="group-hover:scale-110 transition-transform" />
           {t.print_pdf}
         </button>
-        <button className="flex items-center gap-3 px-8 py-3.5 border border-outline rounded-xl font-mono text-[11px] font-bold uppercase tracking-widest text-on-surface hover:bg-surface-container-low transition-all">
-          <Download size={18} />
+        <button className="group flex items-center gap-4 px-10 py-4.5 border border-outline rounded-2xl font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface hover:bg-tertiary hover:text-on-tertiary hover:border-tertiary transition-all duration-300 active:scale-95 bill-card-shadow">
+          <Download size={18} className="group-hover:translate-y-0.5 transition-transform" />
           {t.save_csv}
         </button>
       </div>

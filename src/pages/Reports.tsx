@@ -124,144 +124,192 @@ export const Reports: React.FC<{ bills: Bill[]; language: Language }> = ({ bills
   };
   
   return (
-    <main className="max-w-screen-md mx-auto px-4 pt-8 space-y-8 pb-32">
+    <main className="max-w-4xl mx-auto px-6 pt-12 space-y-12 pb-32">
       {/* Header Section */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-headline text-[32px] font-bold text-on-surface tracking-tight">Projection Metrics</h2>
-          <span className="bg-secondary-container text-on-secondary-container px-4 py-1.5 rounded-lg font-mono text-[11px] font-bold uppercase tracking-widest border border-white/5 shadow-sm">OCT 2023</span>
+          <div className="space-y-1">
+            <h2 className="font-headline text-4xl font-black text-on-surface tracking-tighter uppercase italic">{t.projection_metrics}</h2>
+            <div className="flex items-center gap-2">
+              <span className="technical-label !text-primary/60 !opacity-100">Analytics Engine v2.0</span>
+              <div className="w-1 h-1 rounded-full bg-outline opacity-40"></div>
+              <span className="technical-label !text-tertiary">Real-time Feed Active</span>
+            </div>
+          </div>
+          <div className="bg-surface-container-high/40 backdrop-blur-md px-5 py-2.5 rounded-2xl font-mono text-[11px] font-black uppercase tracking-widest border border-white/10 shadow-xl bill-card-shadow text-primary">
+            {t.october} 2023
+          </div>
         </div>
-        <p className="font-sans text-on-surface-variant leading-relaxed opacity-80">Predictive analysis for ensuing billing cycles initiated within the Q4 window.</p>
+        <p className="font-sans text-on-surface-variant leading-relaxed max-w-2xl opacity-70">
+          {t.projection_desc}
+        </p>
       </div>
 
       {/* Total Summary Card */}
-      <div className="bg-[#11151C] border border-outline p-8 rounded-2xl relative overflow-hidden ring-1 ring-white/5">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl opacity-50"></div>
-        <div className="relative z-10">
-          <div className="flex justify-between items-start mb-4">
-            <span className="font-mono text-[11px] text-on-surface-variant uppercase tracking-[0.2em] font-bold">Projected Net Liability</span>
-            <div className="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
-               <Wallet size={20} />
+      <div className="card !p-0 border-outline overflow-hidden rounded-[2.5rem] relative bill-card-shadow group">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[100px] -mr-48 -mt-48 group-hover:bg-primary/20 transition-colors duration-1000"></div>
+        <div className="p-10 relative z-10">
+          <div className="flex justify-between items-start mb-8">
+            <div className="space-y-1">
+              <span className="technical-label opacity-40">{t.projected_liability}</span>
+              <div className="flex items-baseline gap-4">
+                <span className="font-headline text-6xl font-black tracking-tighter text-on-surface leading-tight">
+                  {projectedTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </span>
+                <span className="font-headline text-2xl font-black text-primary/40 uppercase tracking-widest italic">{t.egp}</span>
+              </div>
+            </div>
+            <div className="w-16 h-16 rounded-3xl bg-surface-container-highest flex items-center justify-center text-primary shadow-inner border border-white/5">
+               <Wallet size={32} strokeWidth={2.5} />
             </div>
           </div>
-          <div className="flex items-baseline gap-3">
-            <span className="font-headline text-[48px] font-bold leading-tight text-on-surface">{projectedTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-            <span className="font-headline text-lg font-medium text-on-surface-variant uppercase tracking-widest font-bold">EGP</span>
-          </div>
-          <div className="mt-6 flex items-center gap-2 font-mono text-[12px] bg-tertiary/10 text-tertiary w-fit px-4 py-2 rounded-lg border border-tertiary/10">
-            <TrendingUp size={16} />
-            <span className="font-bold">+4.2% Variance</span>
+          <div className="pt-8 border-t border-outline/30 flex items-center gap-10">
+            <div className="flex items-center gap-3 font-mono text-[11px] bg-tertiary/10 text-tertiary px-5 py-2.5 rounded-2xl border border-tertiary/20 shadow-lg shadow-tertiary/5">
+              <div className="relative">
+                <TrendingUp size={18} strokeWidth={2.5} />
+                <div className="absolute inset-0 bg-tertiary blur-lg animate-pulse" />
+              </div>
+              <span className="font-black uppercase tracking-widest">+4.2% {t.variance}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="technical-label opacity-40">System Confidence</span>
+              <span className="font-mono text-xs font-black text-on-surface tracking-widest">99.98% ACC</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Spending Trends Section */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between px-1 mb-2">
-           <h3 className="text-[12px] font-bold text-on-surface-variant uppercase tracking-[0.2em] flex items-center gap-2 italic">
-              <span className="w-2 h-2 rounded-full bg-tertiary animate-pulse" />
-              Trend Analysis
+      <section className="space-y-6">
+        <div className="flex items-center gap-4 mb-2">
+           <div className="h-px bg-outline/20 flex-1"></div>
+           <h3 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.3em] flex items-center gap-3 italic bg-surface px-4 py-1.5 rounded-full border border-outline/30">
+              <div className="w-2 h-2 rounded-full bg-tertiary shadow-[0_0_10px_rgba(20,255,20,0.5)] animate-pulse" />
+              {t.trend_analysis}
            </h3>
+           <div className="h-px bg-outline/20 flex-1"></div>
         </div>
-        <ComparisonChart />
+        
+        <div className="card p-1 pb-4 bg-surface-container-low/40 rounded-[2rem] bill-card-shadow">
+          <ComparisonChart />
+        </div>
         
         {/* Trend Summary Chips */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="card p-4 border-primary/20 bg-primary/5">
-             <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-bold text-on-surface-variant uppercase">{t.highest_surge}</span>
-                <ArrowUpRight className="text-error" size={16} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="card p-6 border-primary/20 bg-primary/5 rounded-3xl group relative overflow-hidden">
+             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-150 transition-transform duration-700">
+                <ArrowUpRight size={100} />
              </div>
-             <p className="font-bold text-on-surface">Fiber Net <span className="text-error text-xs ml-1">+12%</span></p>
+             <div className="flex items-center justify-between mb-4 relative z-10">
+                <span className="technical-label !text-error/60">{t.highest_surge}</span>
+                <div className="p-2 rounded-xl bg-error/10 text-error">
+                  <ArrowUpRight strokeWidth={3} size={20} />
+                </div>
+             </div>
+             <p className="font-headline text-xl font-bold text-on-surface relative z-10">Fiber Net <span className="text-error font-black ml-2">+12.4%</span></p>
+             <p className="text-[10px] font-mono text-on-surface-variant font-bold uppercase tracking-widest mt-2 opacity-40">EXCEEDS BUDGET QUOTA</p>
           </div>
-          <div className="card p-4 border-tertiary/20 bg-tertiary/5">
-             <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-bold text-on-surface-variant uppercase">{t.best_savings}</span>
-                <ArrowDownRight className="text-tertiary" size={16} />
+          <div className="card p-6 border-tertiary/20 bg-tertiary/5 rounded-3xl group relative overflow-hidden">
+             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-150 transition-transform duration-700">
+                <ArrowDownRight size={100} />
              </div>
-             <p className="font-bold text-on-surface">Landline <span className="text-tertiary text-xs ml-1">-5%</span></p>
+             <div className="flex items-center justify-between mb-4 relative z-10">
+                <span className="technical-label !text-tertiary">{t.best_savings}</span>
+                <div className="p-2 rounded-xl bg-tertiary/10 text-tertiary">
+                  <ArrowDownRight strokeWidth={3} size={20} />
+                </div>
+             </div>
+             <p className="font-headline text-xl font-bold text-on-surface relative z-10">Landline <span className="text-tertiary font-black ml-2">-5.2%</span></p>
+             <p className="text-[10px] font-mono text-on-surface-variant font-bold uppercase tracking-widest mt-2 opacity-40">OPTIMIZATION SUCCESS</p>
           </div>
         </div>
       </section>
 
       {/* Bills List Grid */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between px-1 mb-4">
-           <h3 className="text-[12px] font-bold text-on-surface-variant uppercase tracking-[0.2em] flex items-center gap-2 italic">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+      <div className="space-y-6">
+        <div className="flex items-center gap-4 mb-4">
+           <div className="h-px bg-outline/20 flex-1"></div>
+           <h3 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.3em] flex items-center gap-3 italic bg-surface px-4 py-1.5 rounded-full border border-outline/30">
+              <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_rgba(59,130,246,0.5)] animate-pulse" />
               {t.categorical_breakdown}
            </h3>
+           <div className="h-px bg-outline/20 flex-1"></div>
         </div>
         
-        {/* Dynamic breakdown items from bills */}
-        {bills.map((bill) => {
-          const Icon = bill.serviceType === "Internet" ? Globe : 
-                       bill.serviceType === "Landline" ? Smartphone :
-                       bill.serviceType === "Water" ? Droplets : List;
-          
-          const colorClass = bill.serviceType === "Internet" ? "text-primary" :
-                             bill.serviceType === "Landline" ? "text-red-500" :
-                             bill.serviceType === "Water" ? "text-cyan-400" : "text-on-surface-variant";
+        <div className="space-y-4">
+          {bills.map((bill) => {
+            const Icon = bill.serviceType === "Internet" ? Globe : 
+                         bill.serviceType === "Landline" ? Smartphone :
+                         bill.serviceType === "Water" ? Droplets : List;
+            
+            const colorClass = bill.serviceType === "Internet" ? "text-primary" :
+                               bill.serviceType === "Landline" ? "text-red-500" :
+                               bill.serviceType === "Water" ? "text-cyan-400" : "text-on-surface-variant";
 
-          const bgClass = colorClass.replace("text-", "bg-") + "/10";
+            const bgClass = colorClass.replace("text-", "bg-") + "/10";
+            const borderClass = colorClass.replace("text-", "border-") + "/20";
 
-          return (
-            <div key={bill.id} className="card flex items-center justify-between group hover:border-primary transition-all cursor-pointer p-5">
-              <div className="flex items-center gap-5">
-                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center border border-white/5", bgClass, colorClass)}>
-                  <Icon size={22} />
-                </div>
-                <div>
-                  <h4 className="font-headline text-base font-bold text-on-surface group-hover:text-primary transition-colors">{bill.provider}</h4>
-                  {bill.branchName ? (
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <div className="w-1 h-1 rounded-full bg-primary/40"></div>
-                      <p className="text-primary text-[10px] font-bold uppercase tracking-wider leading-none">
-                        {bill.branchName} {language === "AR" ? "فرع" : "Branch"}
-                      </p>
+            return (
+              <div key={bill.id} className="card flex items-center justify-between group hover:border-primary/50 transition-all cursor-pointer p-6 rounded-3xl bill-card-shadow">
+                <div className="flex items-center gap-6">
+                  <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center border shadow-inner transition-transform group-hover:scale-110", bgClass, colorClass, borderClass)}>
+                    <Icon size={24} strokeWidth={2.5} />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-headline text-lg font-black text-on-surface tracking-tight group-hover:text-primary transition-colors uppercase italic">{bill.provider}</h4>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="technical-label">{bill.serviceType.toUpperCase()}</span>
+                      <div className="w-1 h-1 rounded-full bg-outline/40"></div>
+                      <span className="font-mono text-[11px] text-on-surface-variant font-bold uppercase opacity-60">
+                        {new Date(bill.dueDate).toLocaleDateString(language === "AR" ? 'ar-EG' : 'en-US', { month: 'short', day: '2-digit' })}
+                      </span>
                     </div>
-                  ) : (
-                    <p className="text-on-surface-variant/40 text-[9px] font-mono uppercase mt-0.5 italic">{language === "AR" ? "المكتب الرئيسي" : "Head Office / Primary"}</p>
-                  )}
-                  <p className="font-mono text-[11px] text-on-surface-variant uppercase tracking-tighter mt-1.5 opacity-60">{language === "AR" ? "تاريخ الاستحقاق" : "DUE"}: {new Date(bill.dueDate).toLocaleDateString(language === "AR" ? 'ar-EG' : 'en-US', { month: 'short', day: '2-digit' })}</p>
+                  </div>
+                </div>
+                <div className="text-end space-y-1.5">
+                  <p className="font-headline text-xl font-black text-on-surface leading-none tracking-tighter italic">
+                    {bill.amount.toFixed(2)} <span className="text-[10px] font-mono opacity-30 uppercase">{t.egp}</span>
+                  </p>
+                  <span className={cn("text-[9px] uppercase font-black tracking-widest px-3 py-1 rounded-lg border", bgClass, colorClass, borderClass)}>
+                    {t[bill.status.toLowerCase() as keyof typeof t] || bill.status}
+                  </span>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="font-headline text-base font-bold text-on-surface leading-none mb-1.5">{bill.amount.toFixed(2)} {t.egp}</p>
-                <span className={cn("text-[9px] uppercase font-bold px-2 py-0.5 rounded-full ring-1 ring-inset", bgClass, colorClass, "ring-current/20")}>
-                  {t[bill.status.toLowerCase() as keyof typeof t] || bill.status}
-                </span>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Export Actions */}
-      <div className="pt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="pt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
         <button 
           onClick={exportToPDF}
           disabled={isExportingPDF}
-          className="h-14 bg-primary text-on-primary rounded-xl font-headline font-bold flex items-center justify-center gap-3 shadow-xl shadow-primary/20 hover:brightness-110 active:scale-[0.98] transition-all group border border-white/10 text-sm italic tracking-wide disabled:opacity-50"
+          className="h-16 bg-primary text-on-primary rounded-2xl font-headline font-black flex items-center justify-center gap-4 shadow-2xl shadow-primary/30 hover:brightness-110 active:scale-[0.98] transition-all group border border-white/10 text-sm uppercase italic tracking-[0.1em] disabled:opacity-50"
         >
-          {isExportingPDF ? <Loader2 className="animate-spin" size={20} /> : <FileText size={20} className="group-hover:scale-110 transition-transform" />}
+          {isExportingPDF ? <Loader2 className="animate-spin" size={24} /> : <FileText size={24} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />}
           {t.generate_pdf}
         </button>
         <button 
           onClick={exportToXLSX}
           disabled={isExportingXLSX}
-          className="h-14 border border-outline text-on-surface-variant rounded-xl font-headline font-bold flex items-center justify-center gap-3 hover:bg-surface-container transition-all active:scale-[0.98] group text-sm italic tracking-wide disabled:opacity-50"
+          className="h-16 border-2 border-outline-variant bg-surface-container-low/40 backdrop-blur-md text-on-surface rounded-2xl font-headline font-black flex items-center justify-center gap-4 hover:bg-surface-container hover:border-primary/40 transition-all active:scale-[0.98] group text-sm uppercase italic tracking-[0.1em] disabled:opacity-50"
         >
-          {isExportingXLSX ? <Loader2 className="animate-spin" size={20} /> : <Download size={20} className="group-hover:translate-y-0.5 transition-transform" />}
+          {isExportingXLSX ? <Loader2 className="animate-spin" size={24} /> : <Download size={24} strokeWidth={2.5} className="group-hover:translate-y-1 transition-transform" />}
           {t.download_ledger}
         </button>
       </div>
 
       {/* Success Toast */}
       {showToast.show && (
-        <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 bg-tertiary text-on-tertiary px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
-          <CheckCircle2 size={20} />
-          <span className="font-mono text-[11px] font-bold uppercase tracking-wider">{language === "AR" ? "تم بنجاح" : showToast.message}</span>
+        <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 bg-tertiary text-on-tertiary px-8 py-4 rounded-2xl shadow-2xl border-2 border-white/10 flex items-center gap-4 animate-in zoom-in-95 slide-in-from-bottom-8">
+          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+            <CheckCircle2 size={20} strokeWidth={3} />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-mono text-[10px] font-black uppercase tracking-[0.2em] opacity-80">System Command</span>
+            <span className="font-headline text-xs font-black uppercase italic tracking-wider">{language === "AR" ? "تم بنجاح" : showToast.message}</span>
+          </div>
         </div>
       )}
 

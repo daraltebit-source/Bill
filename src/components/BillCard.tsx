@@ -52,29 +52,38 @@ export const BillCard: React.FC<{ bill: Bill; language: Language; onDelete?: (id
   const t = translations[language];
   return (
     <div 
-      className="card flex items-center justify-between group hover:border-primary transition-all cursor-pointer relative overflow-hidden"
+      className="card flex items-center justify-between group hover:border-primary/50 transition-all cursor-pointer relative overflow-hidden bill-card-shadow"
       onClick={() => onViewDetails?.(bill)}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 relative z-10">
         <div className={cn(
-          "w-12 h-12 rounded-xl flex items-center justify-center transition-colors",
-          bill.status === "Unpaid" ? "bg-error/10 text-error" : "bg-primary/10 text-primary"
+          "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:rotate-6",
+          bill.status === "Unpaid" ? "bg-error/10 text-error border border-error/20" : "bg-primary/10 text-primary border border-primary/20"
         )}>
-          <UtilityIcon type={bill.serviceType} size={24} recurring={bill.recurring} />
+          <UtilityIcon type={bill.serviceType} size={22} recurring={bill.recurring} />
         </div>
-        <div>
-          <h3 className="font-headline text-base text-on-surface font-semibold group-hover:text-primary transition-colors">
-            {bill.provider} {bill.branchName && <span className="text-primary/60 text-xs font-normal mx-1">({bill.branchName})</span>}
+        <div className="space-y-0.5">
+          <h3 className="font-headline text-base text-on-surface font-bold tracking-tight group-hover:text-primary transition-colors">
+            {bill.provider}
           </h3>
-          <p className="font-mono text-[11px] text-on-surface-variant uppercase tracking-tight">
-            {language === "AR" ? "تاريخ الاستحقاق" : "Due"} {new Date(bill.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-          </p>
+          <div className="flex items-center gap-2">
+            <span className="technical-label !text-[9px]">{language === "AR" ? "الاستحقاق" : "DUE"}</span>
+            <span className="font-mono text-[11px] text-on-surface-variant font-bold">
+              {new Date(bill.dueDate).toLocaleDateString(language === "AR" ? 'ar-EG' : 'en-GB', { day: '2-digit', month: 'short' })}
+            </span>
+            {bill.branchName && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-outline opacity-50" />
+                <span className="text-primary/60 text-[10px] font-bold uppercase tracking-widest">{bill.branchName}</span>
+              </>
+            )}
+          </div>
         </div>
       </div>
-      <div className="flex items-center gap-4">
-        <div className="text-right">
-          <p className="font-headline text-lg text-on-surface font-bold leading-none mb-1">
-            {bill.amount.toFixed(2)} <span className="text-[10px] opacity-60">{t.egp}</span>
+      <div className="flex items-center gap-6 relative z-10">
+        <div className="text-end px-2 space-y-1">
+          <p className="font-headline text-lg text-on-surface font-black leading-none tracking-tight">
+            {bill.amount.toFixed(2)} <span className="text-[10px] font-mono font-bold opacity-40">{t.egp}</span>
           </p>
           <StatusBadge status={bill.status} language={language} />
         </div>
@@ -84,7 +93,7 @@ export const BillCard: React.FC<{ bill: Bill; language: Language; onDelete?: (id
               e.stopPropagation();
               onDelete(bill.id);
             }}
-            className="p-2 text-on-surface-variant/40 hover:text-error hover:bg-error/10 rounded-lg transition-all"
+            className="p-2.5 text-on-surface-variant/30 hover:text-error hover:bg-error/10 rounded-xl transition-all border border-transparent hover:border-error/20"
           >
             <Trash2 size={18} />
           </button>
@@ -103,63 +112,80 @@ export const BillListItem: React.FC<{ bill: Bill; language: Language; onDelete?:
   };
 
   return (
-    <div className="card flex flex-col md:flex-row md:items-center justify-between gap-4 group">
-      <div className="flex items-center gap-4 flex-1">
-        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-white/5">
-          <UtilityIcon type={bill.serviceType} size={22} recurring={bill.recurring} />
+    <div className="card flex flex-col md:flex-row md:items-center justify-between gap-6 group hover:border-primary/40 bill-card-shadow">
+      <div className="flex items-center gap-5 flex-1">
+        <div className="w-14 h-14 rounded-2xl bg-surface-container-highest flex items-center justify-center text-primary border border-white/5 shadow-inner transition-transform group-hover:scale-105 duration-300">
+          <UtilityIcon type={bill.serviceType} size={24} recurring={bill.recurring} />
         </div>
-        <div>
-          <p className="font-headline text-lg text-on-surface font-semibold leading-tight">
-            {bill.provider}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-3">
+            <p className="font-headline text-xl text-on-surface font-bold tracking-tight leading-none">
+              {bill.provider}
+            </p>
             {bill.branchName && bill.status !== "Paid" && (
               <span className={cn(
-                "text-primary text-[10px] bg-primary/10 px-2 py-0.5 rounded-md align-middle font-bold uppercase tracking-wider",
-                language === "AR" ? "mr-3" : "ml-3"
+                "text-primary text-[9px] bg-primary/10 px-2 py-0.5 rounded-md font-bold uppercase tracking-[0.15em] border border-primary/20",
               )}>
                 {bill.branchName}
               </span>
             )}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="font-mono text-[11px] text-on-surface-variant font-medium uppercase tracking-wider">{getServiceLabel(bill.serviceType)}</span>
-            <span className="w-1 h-1 rounded-full bg-outline"></span>
-            <span className="font-mono text-[11px] text-on-surface-variant">{language === "AR" ? "يستحق في" : "Due"} {new Date(bill.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="technical-label">{getServiceLabel(bill.serviceType)}</span>
+            {bill.accountNumber && (
+              <>
+                <div className="w-1 h-1 rounded-full bg-outline/40"></div>
+                <span className="technical-label !text-on-surface-variant/70 font-mono tracking-tighter italic">{bill.accountNumber}</span>
+              </>
+            )}
+            <div className="w-1 h-1 rounded-full bg-outline/40"></div>
+            <div className="flex items-center gap-1.5">
+              <span className="technical-label !text-on-surface-variant/40">{language === "AR" ? "يستحق" : "DUE"}</span>
+              <span className="font-mono text-[11px] text-on-surface-variant font-bold">{new Date(bill.dueDate).toLocaleDateString(language === "AR" ? 'ar-EG' : 'en-GB', { day: '2-digit', month: 'short' })}</span>
+            </div>
             {bill.recurring && bill.frequency && (
               <>
-                <span className="w-1 h-1 rounded-full bg-outline"></span>
-                <span className="font-mono text-[10px] text-primary font-bold uppercase tracking-widest">{language === "AR" ? "دوري" : bill.frequency}</span>
+                <div className="w-1 h-1 rounded-full bg-outline/40"></div>
+                <div className="flex items-center gap-1.5">
+                  <span className="technical-label !text-primary/40 font-black">AUTO</span>
+                  <span className="font-mono text-[11px] text-primary font-black uppercase tracking-widest leading-none">{language === "AR" ? "دوري" : bill.frequency}</span>
+                </div>
               </>
             )}
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 border-t border-outline-variant md:border-transparent pt-4 md:pt-0">
-        <div className="text-left md:text-right px-2">
-          <p className="font-headline text-xl text-on-surface font-bold leading-none mb-1">{bill.amount.toFixed(2)} {t.egp}</p>
+      <div className="flex items-center justify-between md:justify-end gap-6 border-t border-outline/30 md:border-transparent pt-4 md:pt-0">
+        <div className="text-start md:text-end px-1 space-y-1.5">
+          <p className="font-headline text-2xl text-on-surface font-black leading-none tracking-tighter">
+            {bill.amount.toFixed(2)} <span className="text-[11px] font-mono opacity-30 font-bold">{t.egp}</span>
+          </p>
           <StatusBadge status={bill.status} language={language} />
         </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => onViewDetails?.(bill)}
-            className="p-3 text-on-surface-variant/40 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
-            title={t.details}
-          >
-            <ReceiptText size={20} />
-          </button>
-          {onDelete && (
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2">
             <button 
-              onClick={() => onDelete(bill.id)}
-              className="p-3 text-on-surface-variant/40 hover:text-error hover:bg-error/10 rounded-xl transition-all"
-              title={t.delete}
+              onClick={() => onViewDetails?.(bill)}
+              className="p-3 text-on-surface-variant/40 hover:text-primary hover:bg-primary/10 rounded-xl transition-all border border-transparent hover:border-primary/20"
+              title={t.details}
             >
-              <Trash2 size={20} />
+              <ReceiptText size={20} />
             </button>
-          )}
+            {onDelete && (
+              <button 
+                onClick={() => onDelete(bill.id)}
+                className="p-3 text-on-surface-variant/40 hover:text-error hover:bg-error/10 rounded-xl transition-all border border-transparent hover:border-error/20"
+                title={t.delete}
+              >
+                <Trash2 size={20} />
+              </button>
+            )}
+          </div>
           <button className={cn(
-            "rounded-lg px-8 py-2.5 font-sans text-sm font-bold transition-all active:scale-95 shadow-sm min-w-[120px]",
+            "rounded-xl px-8 py-3.5 font-headline text-sm font-bold transition-all active:scale-95 shadow-md min-w-[130px] tracking-tight",
             bill.status === "Unpaid" 
-              ? "bg-primary text-on-primary hover:brightness-110" 
-              : "border border-outline text-on-surface-variant hover:bg-surface-container-high"
+              ? "bg-primary text-on-primary hover:brightness-110 shadow-primary/20" 
+              : "bg-surface-container-highest/60 border border-outline text-on-surface hover:bg-surface-container-highest"
           )}>
             {bill.status === "Unpaid" ? t.pay_now : t.manage}
           </button>

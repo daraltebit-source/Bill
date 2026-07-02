@@ -1,0 +1,6 @@
+{
+  "appId": "com.billmanager.app",
+  "appName": "BillManager",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

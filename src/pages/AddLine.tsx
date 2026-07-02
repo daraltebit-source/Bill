@@ -23,7 +23,7 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
     
     const newErrors: Record<string, string> = {};
     if (!cost || parseFloat(cost) <= 0) {
-      newErrors.cost = language === "AR" ? "يرجى تحديد حد الإنفاق الشهري أكبر من 0" : "Please specify a monthly expenditure limit greater than 0";
+      newErrors.cost = t.expenditure_error;
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -63,10 +63,7 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
         </div>
         <h2 className="text-2xl font-bold text-on-surface mb-3">{t.sync_authorized}</h2>
         <p className="text-on-surface-variant mb-10">
-          {language === "AR" 
-            ? `تم تسجيل التزامك الجديد لـ ${t[serviceType.toLowerCase() as keyof typeof t] || serviceType} ${branchName ? `لفرع ${branchName}` : ""} في السجل${isRecurring ? ` بجدول دوري` : ""}.`
-            : `Your new ${serviceType} obligation ${branchName ? `for ${branchName}` : ""} has been recorded in the ledger${isRecurring ? ` on a recurring schedule` : ""}.`
-          }
+          {t.sync_success_message}
         </p>
         <button 
           onClick={onBack}
@@ -83,13 +80,13 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
       {/* Breadcrumb */}
       <button 
         onClick={onBack}
-        className={cn("flex items-center gap-2 mb-10 text-on-surface-variant hover:text-primary transition-colors group", language === "AR" && "flex-row-reverse")}
+        className={cn("flex items-center gap-2 mb-10 text-on-surface-variant hover:text-primary transition-colors group")}
       >
         <ArrowLeft size={18} className={cn("transition-transform", language === "AR" ? "rotate-180 group-hover:translate-x-1" : "group-hover:-translate-x-1")} />
         <span className="font-mono text-[11px] uppercase tracking-[0.2em] font-bold">{t.return_dashboard}</span>
       </button>
 
-      <div className={cn("mb-12", language === "AR" && "text-right")}>
+      <div className={cn("mb-12")}>
         <h2 className="font-headline text-[32px] font-bold text-on-surface leading-tight mb-2">{t.new_obligation}</h2>
         <p className="text-on-surface-variant text-[15px] leading-relaxed opacity-80">{t.new_obligation_desc}</p>
       </div>
@@ -138,12 +135,12 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
                 id="provider" 
                 name="provider"
               >
-                <option value="we">Telecom Egypt (WE)</option>
-                <option value="orange">Orange DSL</option>
-                <option value="vodafone">Vodafone Giga</option>
-                <option value="etisalat">Etisalat Connect</option>
+                <option value="we">{t.telecom_egypt_we}</option>
+                <option value="orange">{t.orange_dsl}</option>
+                <option value="vodafone">{t.vodafone_giga}</option>
+                <option value="etisalat">{t.etisalat_connect}</option>
               </select>
-              <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", language === "AR" ? "left-4" : "right-4")}>
+              <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", "end-4")}>
                  <ArrowLeft className="-rotate-90" size={14} />
               </div>
             </div>
@@ -153,7 +150,7 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
             <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]", language === "AR" && "text-right")} htmlFor="branchName">{t.branch_name}</label>
             <div className="relative">
               <input 
-                className={cn("block w-full px-4 py-4 bg-[#11151C] border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface transition-all placeholder:text-on-surface-variant/30 font-medium", language === "AR" && "text-right")}
+                className={cn("block w-full px-4 py-4 bg-[#11151C] border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface transition-all placeholder:text-on-surface-variant/30 font-medium")}
                 id="branchName" 
                 name="branchName" 
                 placeholder={language === "AR" ? "مثال: فرع هليوبوليس" : "e.g. Heliopolis Branch"} 
@@ -164,7 +161,7 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]", language === "AR" && "text-right")} htmlFor="renewal">{t.billing_day}</label>
+              <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]", "text-start")} htmlFor="renewal">{t.billing_day}</label>
               <div className="relative">
                 <select 
                   className="block w-full px-4 py-4 bg-[#11151C] border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface appearance-none transition-all cursor-pointer font-medium"
@@ -178,18 +175,18 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
                     return <option key={day} value={day}>{day}{language === "AR" ? "" : suffix}</option>
                   })}
                 </select>
-                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", language === "AR" ? "left-4" : "right-4")}>
+                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", "end-4")}>
                   <CalendarDays size={18} />
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]", language === "AR" && "text-right")} htmlFor="cost">{t.monthly_limit}</label>
-              <div className={cn("flex gap-2", language === "AR" && "flex-row-reverse")}>
+              <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]", "text-start")} htmlFor="cost">{t.monthly_limit}</label>
+              <div className={cn("flex gap-2")}>
                 <div className="relative w-24 shrink-0">
                   <select 
-                    className="block w-full pl-3 pr-8 py-4 bg-[#11151C] border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface appearance-none transition-all cursor-pointer font-bold text-[10px] uppercase"
+                    className="block w-full ps-3 pe-8 py-4 bg-[#11151C] border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface appearance-none transition-all cursor-pointer font-bold text-[10px] uppercase"
                     id="currency" 
                     name="currency"
                     defaultValue="egp"
@@ -197,7 +194,7 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
                     <option value="egp">{t.egp}</option>
                     <option value="usd">USD</option>
                   </select>
-                  <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", language === "AR" ? "left-2" : "right-2")}>
+                  <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", "end-2")}>
                      <ArrowLeft className="-rotate-90" size={12} />
                   </div>
                 </div>
@@ -216,7 +213,7 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
                 </div>
               </div>
               {errors.cost && (
-                <p className={cn("text-[11px] text-error flex items-center gap-1 mt-1 font-medium italic", language === "AR" ? "flex-row-reverse" : "justify-end")}>
+                <p className={cn("text-[11px] text-error flex items-center gap-1 mt-1 font-medium italic", "justify-end")}>
                   <AlertCircle size={10} /> {errors.cost}
                 </p>
               )}
@@ -232,18 +229,17 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
                 "w-full flex items-center justify-between p-5 rounded-xl border transition-all truncate",
                 isRecurring 
                   ? "border-primary bg-primary/5 text-primary" 
-                  : "border-outline bg-[#11151C] text-on-surface-variant hover:border-outline-variant",
-                language === "AR" && "flex-row-reverse"
+                  : "border-outline bg-[#11151C] text-on-surface-variant hover:border-outline-variant"
               )}
             >
-              <div className={cn("flex items-center gap-4", language === "AR" && "flex-row-reverse")}>
+              <div className={cn("flex items-center gap-4")}>
                 <div className={cn(
                   "w-10 h-10 rounded-lg flex items-center justify-center transition-colors shadow-sm",
                   isRecurring ? "bg-primary/20" : "bg-surface-container-high"
                 )}>
                   <Repeat size={18} />
                 </div>
-                <div className={cn(language === "AR" ? "text-right" : "text-left")}>
+                <div className={cn("text-start")}>
                   <p className="font-mono text-[10px] font-bold uppercase tracking-widest leading-none mb-1">{t.recurring_obligation}</p>
                   <p className="text-[12px] opacity-70">{t.recurring_desc}</p>
                 </div>
@@ -254,14 +250,14 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
               )}>
                 <div className={cn(
                   "absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm",
-                  isRecurring ? "left-7" : "left-1"
+                  isRecurring ? "start-7" : "start-1"
                 )} />
               </div>
             </button>
 
             {isRecurring && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em] mb-2", language === "AR" && "text-right")} htmlFor="frequency">{t.interval_frequency}</label>
+                <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em] mb-2", "text-start")} htmlFor="frequency">{t.interval_frequency}</label>
                 <div className="relative">
                   <select 
                     className="block w-full px-4 py-4 bg-[#11151C] border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface appearance-none transition-all cursor-pointer font-medium"
@@ -269,11 +265,11 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
                     name="frequency"
                     defaultValue="Monthly"
                   >
-                    <option value="Monthly">{language === "AR" ? "دورة شهرية" : "Monthly Cycle"}</option>
-                    <option value="Quarterly">{language === "AR" ? "ربع سنوي (90 يوم)" : "Quarterly (90 Days)"}</option>
-                    <option value="Annually">{language === "AR" ? "تجديد سنوي" : "Annual Renewal"}</option>
+                    <option value="Monthly">{t.monthly_cycle}</option>
+                    <option value="Quarterly">{t.quarterly_90_days}</option>
+                    <option value="Annually">{t.annual_renewal}</option>
                   </select>
-                  <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", language === "AR" ? "left-4" : "right-4")}>
+                  <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", "end-4")}>
                      <ArrowLeft className="-rotate-90" size={14} />
                   </div>
                 </div>
@@ -283,10 +279,10 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
         </div>
 
         {/* Info Box */}
-        <div className={cn("card bg-primary/5 border-primary/20 p-5 flex items-start gap-4", language === "AR" && "flex-row-reverse")}>
+        <div className={cn("card bg-primary/5 border-primary/20 p-5 flex items-start gap-4")}>
           <Info className="text-primary mt-0.5 shrink-0" size={20} />
-          <p className={cn("text-[13px] leading-relaxed text-on-surface-variant", language === "AR" && "text-right")}>
-            <strong>Stratos Insight:</strong> {language === "AR" ? `لقد أنفقت 12% أكثر على خدمات الـ ${t[serviceType.toLowerCase() as keyof typeof t] || serviceType} هذا العام مقارنة بالمتوسط التاريخي.` : `You've spent 12% more on ${serviceType} services this year compared to the historical average.`}
+          <p className={cn("text-[13px] leading-relaxed text-on-surface-variant", "text-start")}>
+            <strong>Stratos Insight:</strong> {t.insight_text}
           </p>
         </div>
 

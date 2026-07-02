@@ -10,8 +10,31 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { translations, Language } from "../translations";
+import { GoogleSheetsSync } from "../components/GoogleSheetsSync";
+import { GoogleCalendarSync } from "../components/GoogleCalendarSync";
+import { Bill } from "../types";
 
-export const SettingsPage: React.FC<{ language: Language }> = ({ language }) => {
+interface SettingsPageProps {
+  language: Language;
+  bills: Bill[];
+  onBillsImported: (imported: Bill[]) => void;
+  autoSync: boolean;
+  onAutoSyncToggle: (val: boolean) => void;
+  autoCalendarSync: boolean;
+  onAutoCalendarSyncToggle: (val: boolean) => void;
+  onSuccessMessage: (msg: string) => void;
+}
+
+export const SettingsPage: React.FC<SettingsPageProps> = ({ 
+  language,
+  bills,
+  onBillsImported,
+  autoSync,
+  onAutoSyncToggle,
+  autoCalendarSync,
+  onAutoCalendarSyncToggle,
+  onSuccessMessage
+}) => {
   const t = translations[language];
   const [notifications, setNotifications] = useState({
     push: true,
@@ -142,6 +165,29 @@ export const SettingsPage: React.FC<{ language: Language }> = ({ language }) => 
               </button>
             </div>
           </div>
+        </section>
+
+        {/* Google Sheets Sync Section */}
+        <section className="space-y-4 pt-4">
+          <GoogleSheetsSync
+            language={language}
+            bills={bills}
+            onBillsImported={onBillsImported}
+            autoSync={autoSync}
+            onAutoSyncToggle={onAutoSyncToggle}
+            onSuccessMessage={onSuccessMessage}
+          />
+        </section>
+
+        {/* Google Calendar Sync Section */}
+        <section className="space-y-4 pt-4">
+          <GoogleCalendarSync
+            language={language}
+            bills={bills}
+            autoCalendarSync={autoCalendarSync}
+            onAutoCalendarSyncToggle={onAutoCalendarSyncToggle}
+            onSuccessMessage={onSuccessMessage}
+          />
         </section>
 
         {/* Actions */}

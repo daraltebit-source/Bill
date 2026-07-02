@@ -21,20 +21,23 @@ const data = [
 
 export const ComparisonChart: React.FC = () => {
   return (
-    <div className="card w-full h-[400px] p-6">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-           <h3 className="text-[12px] font-bold text-on-surface-variant uppercase tracking-[0.2em] mb-1">Expenditure Comparison</h3>
-           <p className="text-[10px] text-on-surface-variant/60 font-mono italic">Side-by-side delta analysis</p>
+    <div className="w-full h-[400px] p-8 pt-4">
+      <div className="mb-10 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-1.5 h-6 bg-primary rounded-full" />
+          <div className="flex flex-col">
+             <h3 className="technical-label !text-primary/60 !opacity-100">Expenditure Delta Analysis</h3>
+             <span className="text-[10px] text-on-surface-variant/40 font-mono font-black uppercase tracking-widest leading-none">Side-by-side node comparison</span>
+          </div>
         </div>
-        <div className="flex gap-6">
-           <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-sm bg-primary shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
-              <span className="text-[10px] font-bold text-on-surface uppercase tracking-widest">Current</span>
+        <div className="flex gap-8 bg-surface-container-high/20 px-5 py-2.5 rounded-2xl border border-white/5">
+           <div className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-md bg-primary shadow-[0_0_15px_rgba(59,130,246,0.6)]" />
+              <span className="text-[10px] font-black text-on-surface uppercase tracking-widest font-mono">Current</span>
            </div>
-           <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-sm bg-[#2DD4BF] shadow-[0_0_8px_rgba(45,212,191,0.4)]" />
-              <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Previous</span>
+           <div className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-md bg-[#2DD4BF] shadow-[0_0_15px_rgba(45,212,191,0.6)]" />
+              <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest font-mono">Previous</span>
            </div>
         </div>
       </div>
@@ -44,60 +47,62 @@ export const ComparisonChart: React.FC = () => {
           margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
           barGap={12}
         >
-          <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#ffffff05" />
+          <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#ffffff08" />
           <XAxis 
             dataKey="name" 
             axisLine={false} 
             tickLine={false} 
-            tick={{ fill: "#94A3B8", fontSize: 10, fontWeight: "bold" }}
+            tick={{ fill: "#94A3B8", fontSize: 10, fontWeight: "900", fontFamily: "monospace" }}
             dy={10}
           />
           <YAxis 
             axisLine={false} 
             tickLine={false} 
-            tick={{ fill: "#94A3B8", fontSize: 10, fontWeight: "bold" }}
+            tick={{ fill: "#94A3B8", fontSize: 10, fontWeight: "900", fontFamily: "monospace" }}
           />
           <Tooltip 
-            cursor={{ fill: "rgba(255,255,255,0.03)" }}
+            cursor={{ fill: "rgba(255,255,255,0.02)" }}
             contentStyle={{ 
-              backgroundColor: "#11151C", 
-              border: "1px solid #ffffff10", 
-              borderRadius: "12px",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
+              backgroundColor: "rgba(17, 21, 28, 0.9)", 
+              backdropFilter: "blur(12px)",
+              border: "2px solid rgba(255,255,255,0.05)", 
+              borderRadius: "20px",
+              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+              padding: "16px"
             }}
-            itemStyle={{ fontSize: 12, fontWeight: "bold", fontFamily: "monospace" }}
-            labelStyle={{ fontSize: 10, color: "#94A3B8", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.1em" }}
+            itemStyle={{ fontSize: 13, fontWeight: "900", fontFamily: "monospace" }}
+            labelStyle={{ fontSize: 10, fontWeight: "900", color: "#94A3B8", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.2em", fontFamily: "monospace" }}
           />
           <Bar 
             dataKey="current" 
-            fill="#6366F1" 
-            radius={[4, 4, 0, 0]} 
-            barSize={20}
+            fill="#3B82F6" 
+            radius={[6, 6, 0, 0]} 
+            barSize={24}
           >
             <LabelList 
               dataKey="current" 
               position="top" 
               fill="#F8FAFC" 
-              fontSize={9} 
-              fontWeight="bold" 
+              fontSize={10} 
+              fontWeight="900" 
               fontFamily="monospace"
-              offset={8}
+              offset={12}
             />
           </Bar>
           <Bar 
             dataKey="previous" 
             fill="#2DD4BF" 
-            radius={[4, 4, 0, 0]}
-            barSize={20}
+            radius={[6, 6, 0, 0]}
+            barSize={24}
           >
             <LabelList 
               dataKey="previous" 
               position="top" 
               fill="#94A3B8" 
-              fontSize={9} 
-              fontWeight="bold" 
+              fontSize={10} 
+              fontWeight="900" 
               fontFamily="monospace"
-              offset={8}
+              offset={12}
             />
           </Bar>
         </BarChart>
