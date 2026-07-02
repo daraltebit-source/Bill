@@ -23,6 +23,5 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["src/**/*", "*.ts", "*.tsx"],
-  "exclude": ["node_modules", "dist", "android"]
+  "exclude": ["node_modules", "android", "dist"]
 }

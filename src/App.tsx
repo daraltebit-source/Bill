@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { TopAppBar, BottomNavBar, Sidebar } from "./components/Navigation";
 import { Dashboard } from "./pages/Dashboard";
@@ -13,11 +13,11 @@ import { Reports } from "./pages/Reports";
 import { SettingsPage } from "./pages/Settings";
 import { mockBills as initialMockBills, monthlyExpenses } from "./mockData";
 import { Bill } from "./types";
-import { useEffect } from "react";
 import { getAccessToken, initAuth } from "./lib/googleAuth";
 import { exportBillsToSheet } from "./lib/googleSheets";
 import { syncBillsToCalendar } from "./lib/googleCalendar";
 import { CheckCircle2 } from "lucide-react";
+import { notifyOnBillChange, checkBillReminders } from "./lib/notifications";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -26,6 +26,8 @@ export default function App() {
     const saved = localStorage.getItem("billmanager_bills");
     return saved ? JSON.parse(saved) : initialMockBills;
   });
+
+  const prevBillsRef = useRef<Bill[]>(bills);
 
   const [autoSync, setAutoSync] = useState(() => {
     return localStorage.getItem("google_sheets_auto_sync") === "true";
@@ -48,6 +50,13 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("billmanager_bills", JSON.stringify(bills));
   }, [bills]);
+
+  // Handle system push notifications for bill modifications and deadline alerts
+  useEffect(() => {
+    notifyOnBillChange(bills, prevBillsRef.current, language);
+    prevBillsRef.current = bills;
+    checkBillReminders(bills, language);
+  }, [bills, language]);
 
   // Persist autoSync preference
   useEffect(() => {
@@ -118,7 +127,7 @@ export default function App() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "dashboard": return <Dashboard bills={bills} language={language} />;
+      case "dashboard": return <Dashboard bills={bills} setBills={setBills} language={language} onTabChange={setActiveTab} />;
       case "bills": return <Bills bills={bills} setBills={setBills} language={language} />;
       case "add": return <AddLine language={language} onBack={() => setActiveTab("dashboard")} onAdd={(newBill) => setBills(prev => [newBill, ...prev])} />;
       case "reports": return <Reports bills={bills} language={language} />;
@@ -134,7 +143,7 @@ export default function App() {
           onSuccessMessage={showToast}
         />
       );
-      default: return <Dashboard bills={bills} language={language} />;
+      default: return <Dashboard bills={bills} setBills={setBills} language={language} onTabChange={setActiveTab} />;
     }
   };
 

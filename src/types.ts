@@ -7,7 +7,9 @@ export interface Bill {
   provider: string;
   serviceType: UtilityType;
   accountNumber?: string;
-  amount: number;
+  amount: number; // This will represent the TOTAL amount (including 14% VAT)
+  baseAmount?: number; // The base amount entered by the user
+  vatAmount?: number; // The 14% VAT amount
   currency: string;
   dueDate: string;
   status: BillStatus;

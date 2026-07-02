@@ -6,7 +6,7 @@ import { Bill } from "../types";
 import { translations, Language } from "../translations";
 import { ComparisonChart } from "../components/ComparisonChart";
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 export const Reports: React.FC<{ bills: Bill[]; language: Language }> = ({ bills, language }) => {
@@ -21,56 +21,98 @@ export const Reports: React.FC<{ bills: Bill[]; language: Language }> = ({ bills
     setTimeout(() => setShowToast({ show: false, message: "" }), 3000);
   };
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     setIsExportingPDF(true);
     try {
-      const doc = new jsPDF();
+      const doc = new jsPDF("p", "mm", "a4");
       
-      // Header
+      // Top elegant branding header bar
+      doc.setFillColor(17, 21, 28); // Slate dark primary theme color
+      doc.rect(0, 0, 210, 45, "F");
+      
+      doc.setTextColor(255, 255, 255);
       doc.setFontSize(22);
-      doc.setTextColor(20, 20, 20);
-      doc.text("STRATOS EXPENDITURE REPORT", 14, 20);
+      doc.setFont("helvetica", "bold");
+      doc.text("STRATOS EXPENDITURE REPORT", 14, 24);
       
-      doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("Stratos Insight Engine - Internal Ledger Report", 14, 32);
       
-      // Summary Section
-      doc.setFontSize(14);
-      doc.setTextColor(0, 0, 0);
-      doc.text("EXECUTIVE SUMMARY", 14, 40);
-      
-      doc.setFontSize(11);
-      doc.text(`Projected Net Liability: ${projectedTotal.toFixed(2)} EGP`, 14, 50);
-      doc.text(`Analysis Window: OCTOBER 2023`, 14, 56);
-      
-      // Table data
-      const tableColumn = ["Provider", "Branch", "Type", "Amount (EGP)", "Due Date", "Status"];
+      // Generation date
+      doc.setFontSize(8);
+      doc.setTextColor(200, 205, 215);
+      doc.text(`Generated on: ${new Date().toLocaleString(language === "AR" ? "ar-EG" : "en-US")}`, 14, 38);
+
+      // Section label
+      doc.setFontSize(13);
+      doc.setTextColor(17, 21, 28);
+      doc.setFont("helvetica", "bold");
+      doc.text("EXECUTIVE SUMMARY", 14, 58);
+
+      // Summary Table
+      // @ts-ignore
+      autoTable(doc, {
+        startY: 64,
+        body: [
+          ["Report Period", "October 2023", "Total Active Records", bills.length.toString()],
+          ["Projected Net Liability", `${projectedTotal.toFixed(2)} EGP`, "Compliance Status", "Verifiable / Complete"],
+        ],
+        theme: 'striped',
+        styles: { fontSize: 9, cellPadding: 4, fontStyle: 'normal' },
+        columnStyles: {
+          0: { fontStyle: 'bold', fillColor: [240, 242, 245], cellWidth: 45 },
+          1: { cellWidth: 50 },
+          2: { fontStyle: 'bold', fillColor: [240, 242, 245], cellWidth: 45 },
+          3: { cellWidth: 50 }
+        }
+      });
+
+      // Detailed obligations list section
+      const detailedY = (doc as any).lastAutoTable.finalY + 15;
+      doc.setFontSize(13);
+      doc.setTextColor(17, 21, 28);
+      doc.setFont("helvetica", "bold");
+      doc.text("DETAILED OBLIGATIONS LEDGER", 14, detailedY);
+
+      const tableColumn = ["Provider", "Branch Office", "Service Type", "Settlement Amount", "Currency", "Due Date", "Status"];
       const tableRows = bills.map(bill => [
         bill.provider,
-        bill.branchName || "N/A",
+        bill.branchName || "Main Office",
         bill.serviceType,
         bill.amount.toFixed(2),
+        bill.currency,
         bill.dueDate,
         bill.status
       ]);
 
       // @ts-ignore
-      doc.autoTable({
+      autoTable(doc, {
+        startY: detailedY + 6,
         head: [tableColumn],
         body: tableRows,
-        startY: 65,
         theme: 'grid',
-        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] },
-        styles: { fontSize: 9 }
+        headStyles: { 
+          fillColor: [17, 21, 28], 
+          textColor: [255, 255, 255], 
+          fontStyle: 'bold',
+          fontSize: 8.5
+        },
+        styles: { fontSize: 8, cellPadding: 3 },
+        columnStyles: {
+          3: { halign: 'right' }, // Align amount column right
+          4: { halign: 'center' },
+          5: { halign: 'center' },
+          6: { halign: 'center' }
+        }
       });
 
       // Footer
       const pageCount = (doc as any).internal.getNumberOfPages();
-      for(let i = 1; i <= pageCount; i++) {
+      for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
-        doc.setTextColor(150);
+        doc.setTextColor(150, 155, 165);
         doc.text(`Stratos Insight Engine - Internal Compliance Document - Page ${i} of ${pageCount}`, 14, 285);
       }
 
@@ -125,25 +167,26 @@ export const Reports: React.FC<{ bills: Bill[]; language: Language }> = ({ bills
   
   return (
     <main className="max-w-4xl mx-auto px-6 pt-12 space-y-12 pb-32">
-      {/* Header Section */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="font-headline text-4xl font-black text-on-surface tracking-tighter uppercase italic">{t.projection_metrics}</h2>
-            <div className="flex items-center gap-2">
-              <span className="technical-label !text-primary/60 !opacity-100">Analytics Engine v2.0</span>
-              <div className="w-1 h-1 rounded-full bg-outline opacity-40"></div>
-              <span className="technical-label !text-tertiary">Real-time Feed Active</span>
+      <div id="report-print-area" className="space-y-12 pb-6">
+        {/* Header Section */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h2 className="font-headline text-4xl font-black text-on-surface tracking-tighter uppercase italic">{t.projection_metrics}</h2>
+              <div className="flex items-center gap-2">
+                <span className="technical-label !text-primary/60 !opacity-100">Analytics Engine v2.0</span>
+                <div className="w-1 h-1 rounded-full bg-outline opacity-40"></div>
+                <span className="technical-label !text-tertiary">Real-time Feed Active</span>
+              </div>
+            </div>
+            <div className="bg-surface-container-high/40 backdrop-blur-md px-5 py-2.5 rounded-2xl font-mono text-[11px] font-black uppercase tracking-widest border border-white/10 shadow-xl bill-card-shadow text-primary">
+              {t.october} 2023
             </div>
           </div>
-          <div className="bg-surface-container-high/40 backdrop-blur-md px-5 py-2.5 rounded-2xl font-mono text-[11px] font-black uppercase tracking-widest border border-white/10 shadow-xl bill-card-shadow text-primary">
-            {t.october} 2023
-          </div>
+          <p className="font-sans text-on-surface-variant leading-relaxed max-w-2xl opacity-70">
+            {t.projection_desc}
+          </p>
         </div>
-        <p className="font-sans text-on-surface-variant leading-relaxed max-w-2xl opacity-70">
-          {t.projection_desc}
-        </p>
-      </div>
 
       {/* Total Summary Card */}
       <div className="card !p-0 border-outline overflow-hidden rounded-[2.5rem] relative bill-card-shadow group">
@@ -206,7 +249,7 @@ export const Reports: React.FC<{ bills: Bill[]; language: Language }> = ({ bills
                   <ArrowUpRight strokeWidth={3} size={20} />
                 </div>
              </div>
-             <p className="font-headline text-xl font-bold text-on-surface relative z-10">Fiber Net <span className="text-error font-black ml-2">+12.4%</span></p>
+             <p className="font-headline text-xl font-bold text-on-surface relative z-10">{t.fiber_net} <span className="text-error font-black ml-2">+12.4%</span></p>
              <p className="text-[10px] font-mono text-on-surface-variant font-bold uppercase tracking-widest mt-2 opacity-40">EXCEEDS BUDGET QUOTA</p>
           </div>
           <div className="card p-6 border-tertiary/20 bg-tertiary/5 rounded-3xl group relative overflow-hidden">
@@ -279,6 +322,7 @@ export const Reports: React.FC<{ bills: Bill[]; language: Language }> = ({ bills
           })}
         </div>
       </div>
+    </div>
 
       {/* Export Actions */}
       <div className="pt-12 grid grid-cols-1 md:grid-cols-2 gap-6">

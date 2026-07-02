@@ -3,6 +3,7 @@ import { ArrowLeft, Phone, Globe, CalendarDays, Info, Save, Smartphone, AlertCir
 import { cn } from "../lib/utils";
 import { Bill, UtilityType, BillStatus } from "../types";
 import { translations, Language } from "../translations";
+import { DatePicker } from "../components/DatePicker";
 
 export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: (bill: Bill) => void }> = ({ language, onBack, onAdd }) => {
   const t = translations[language];
@@ -12,18 +13,24 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [dueDate, setDueDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [cost, setCost] = useState("");
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const cost = formData.get("cost") as string;
+    const costVal = parseFloat(cost);
     const branch = formData.get("branchName") as string;
+    const accountNumber = formData.get("accountNumber") as string;
     
     setBranchName(branch);
     
     const newErrors: Record<string, string> = {};
-    if (!cost || parseFloat(cost) <= 0) {
+    if (!cost || costVal <= 0) {
       newErrors.cost = t.expenditure_error;
+    }
+    if (!accountNumber || accountNumber.trim() === "") {
+      newErrors.accountNumber = language === "AR" ? "يرجى إدخال مرجع الحساب" : "Please specify an Account Reference";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -34,6 +41,10 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
     setErrors({});
     setIsSubmitting(true);
 
+    const baseAmount = costVal;
+    const vatAmount = costVal * 0.14;
+    const totalAmount = costVal * 1.14;
+
     // Simulate API call
     setTimeout(() => {
       onAdd({
@@ -42,9 +53,12 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
                  formData.get("provider") as string === "orange" ? "Orange DSL" :
                  formData.get("provider") as string === "vodafone" ? "Vodafone Giga" : "Etisalat Connect",
         serviceType: serviceType,
-        amount: parseFloat(cost),
+        accountNumber: accountNumber || undefined,
+        amount: totalAmount,
+        baseAmount: baseAmount,
+        vatAmount: vatAmount,
         currency: (formData.get("currency") as string).toUpperCase(),
-        dueDate: `2023-11-${formData.get("renewal")}`,
+        dueDate: dueDate,
         status: "Unpaid",
         branchName: branch || undefined,
         recurring: isRecurring,
@@ -120,7 +134,7 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
               )}
             >
               <Globe className="mb-3" size={28} />
-              <span className="font-mono text-[12px] font-bold uppercase tracking-widest">{language === "AR" ? "إنترنت فايبر" : "Fiber Net"}</span>
+              <span className="font-mono text-[12px] font-bold uppercase tracking-widest">{t.fiber_net}</span>
             </button>
           </div>
         </div>
@@ -159,44 +173,49 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
             </div>
           </div>
 
+          <div className="space-y-2">
+            <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]", language === "AR" && "text-right")} htmlFor="accountNumber">
+              {t.account_reference}
+            </label>
+            <div className="relative">
+              <input 
+                className={cn(
+                  "block w-full px-4 py-4 bg-[#11151C] border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface transition-all placeholder:text-on-surface-variant/30 font-medium font-mono",
+                  errors.accountNumber ? "border-error/50 ring-1 ring-error/20" : "border-outline"
+                )}
+                id="accountNumber" 
+                name="accountNumber" 
+                placeholder={language === "AR" ? "مثال: 02-33445566" : "e.g. 02-33445566"} 
+                type="text"
+                required
+                onChange={() => {
+                  if (errors.accountNumber) setErrors(prev => ({ ...prev, accountNumber: "" }));
+                }}
+              />
+            </div>
+            {errors.accountNumber && (
+              <p className={cn("text-[11px] text-error flex items-center gap-1 mt-1 font-medium italic", language === "AR" ? "justify-end" : "justify-start")}>
+                <AlertCircle size={10} /> {errors.accountNumber}
+              </p>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]", "text-start")} htmlFor="renewal">{t.billing_day}</label>
-              <div className="relative">
-                <select 
-                  className="block w-full px-4 py-4 bg-[#11151C] border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface appearance-none transition-all cursor-pointer font-medium"
-                  id="renewal" 
-                  name="renewal"
-                >
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
-                    const suffix = day === 1 || day === 21 || day === 31 ? 'st' : 
-                                  day === 2 || day === 22 ? 'nd' :
-                                  day === 3 || day === 23 ? 'rd' : 'th';
-                    return <option key={day} value={day}>{day}{language === "AR" ? "" : suffix}</option>
-                  })}
-                </select>
-                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", "end-4")}>
-                  <CalendarDays size={18} />
-                </div>
-              </div>
+              <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]", "text-start")} htmlFor="dueDate">{t.billing_day}</label>
+              <DatePicker 
+                value={dueDate}
+                onChange={setDueDate}
+                language={language}
+              />
             </div>
 
             <div className="space-y-2">
               <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]", "text-start")} htmlFor="cost">{t.monthly_limit}</label>
               <div className={cn("flex gap-2")}>
-                <div className="relative w-24 shrink-0">
-                  <select 
-                    className="block w-full ps-3 pe-8 py-4 bg-[#11151C] border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface appearance-none transition-all cursor-pointer font-bold text-[10px] uppercase"
-                    id="currency" 
-                    name="currency"
-                    defaultValue="egp"
-                  >
-                    <option value="egp">{t.egp}</option>
-                    <option value="usd">USD</option>
-                  </select>
-                  <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", "end-2")}>
-                     <ArrowLeft className="-rotate-90" size={12} />
-                  </div>
+                <div className="w-24 shrink-0 bg-[#11151C] border border-outline rounded-xl flex items-center justify-center font-bold text-xs uppercase text-primary">
+                  {t.egp}
+                  <input type="hidden" name="currency" value="EGP" />
                 </div>
                 <div className="relative flex-1">
                   <input 
@@ -208,7 +227,12 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
                     name="cost" 
                     placeholder="0.00" 
                     type="number" 
-                    onChange={() => errors.cost && setErrors(prev => ({ ...prev, cost: "" }))}
+                    step="any"
+                    value={cost}
+                    onChange={(e) => {
+                      setCost(e.target.value);
+                      if (errors.cost) setErrors(prev => ({ ...prev, cost: "" }));
+                    }}
                   />
                 </div>
               </div>
@@ -216,6 +240,25 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
                 <p className={cn("text-[11px] text-error flex items-center gap-1 mt-1 font-medium italic", "justify-end")}>
                   <AlertCircle size={10} /> {errors.cost}
                 </p>
+              )}
+
+              {/* Real-time VAT (14%) & Total Breakdown */}
+              {parseFloat(cost) > 0 && (
+                <div className="mt-3 p-4 bg-surface-container-high/40 rounded-2xl border border-outline-variant/30 text-xs space-y-2.5 animate-in fade-in duration-300">
+                  <div className="flex justify-between items-center text-on-surface-variant">
+                    <span className="font-sans font-medium">{language === "AR" ? "المبلغ الأساسي:" : "Base Amount:"}</span>
+                    <span className="font-mono font-bold text-sm">{(parseFloat(cost) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] opacity-60 font-semibold">{t.egp}</span></span>
+                  </div>
+                  <div className="flex justify-between items-center text-on-surface-variant">
+                    <span className="font-sans font-medium">{language === "AR" ? "ضريبة القيمة المضافة (14%):" : "VAT (14%):"}</span>
+                    <span className="font-mono font-bold text-sm text-primary">{(parseFloat(cost) * 0.14 || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] opacity-60 font-semibold">{t.egp}</span></span>
+                  </div>
+                  <div className="h-px bg-outline-variant/30 my-1" />
+                  <div className="flex justify-between items-center text-on-surface">
+                    <span className="font-sans font-bold text-[13px]">{language === "AR" ? "الإجمالي المستحق (شامل الضريبة):" : "Total Due (VAT Incl.):"}</span>
+                    <span className="font-mono font-black text-base text-primary">{(parseFloat(cost) * 1.14 || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs font-bold">{t.egp}</span></span>
+                  </div>
+                </div>
               )}
             </div>
           </div>

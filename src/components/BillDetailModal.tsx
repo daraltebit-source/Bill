@@ -1,9 +1,11 @@
 import React from "react";
-import { X, CreditCard, History, Building2, Calendar, FileText, ArrowUpRight } from "lucide-react";
+import { X, CreditCard, History, Building2, Calendar, FileText, ArrowUpRight, Loader2 } from "lucide-react";
 import { Bill } from "../types";
 import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { translations, Language } from "../translations";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface BillDetailModalProps {
   bill: Bill | null;
@@ -31,12 +33,124 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({ bill, onClose,
     }
   };
 
+  const [isExporting, setIsExporting] = React.useState(false);
+  
+  const handleDownloadStatement = async () => {
+    if (!bill) return;
+    setIsExporting(true);
+    try {
+      const doc = new jsPDF("p", "mm", "a4");
+      
+      // Top elegant branding header bar
+      doc.setFillColor(17, 21, 28); // Slate dark primary theme color
+      doc.rect(0, 0, 210, 45, "F");
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont("helvetica", "bold");
+      doc.text("BILLMATRIX STATEMENT", 14, 25);
+      
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("Electronic Ledger Record & Verification Statement", 14, 33);
+      
+      // Generation date
+      doc.setFontSize(8);
+      doc.setTextColor(200, 205, 215);
+      doc.text(`Generated on: ${new Date().toLocaleString(language === "AR" ? "ar-EG" : "en-US")}`, 14, 39);
+
+      // Section label
+      doc.setFontSize(13);
+      doc.setTextColor(17, 21, 28);
+      doc.setFont("helvetica", "bold");
+      doc.text("OBLIGATION METRICS", 14, 58);
+
+      // Main bill information grid using jsPDF autoTable
+      const formattedDate = new Date(bill.dueDate).toLocaleDateString(
+        language === "AR" ? 'ar-EG' : 'en-US', 
+        { day: '2-digit', month: 'long', year: 'numeric' }
+      );
+      const formattedFrequency = language === "AR" 
+        ? (bill.frequency === "Monthly" ? "شهري" : bill.frequency || "مرة واحدة") 
+        : (bill.frequency || "Once-off");
+      const serviceLabel = language === "AR" 
+        ? (bill.serviceType === "Internet" ? "سجل إنترنت" : "سجل هاتف أرضي") 
+        : `${bill.serviceType} Record`;
+      
+      // @ts-ignore
+      autoTable(doc, {
+        startY: 64,
+        body: [
+          [t.provider || "Provider", bill.provider, t.due_date || "Due Date", formattedDate],
+          [language === "AR" ? "نوع الخدمة" : "Service Type", serviceLabel, t.branch_office || "Branch Office", bill.branchName || "Main Office"],
+          [t.account_reference || "Account Reference", bill.accountNumber || "N/A", language === "AR" ? "التكرار" : "Frequency", formattedFrequency],
+          [language === "AR" ? "الحالة" : "Status", bill.status, language === "AR" ? "المبلغ المستحق" : "Amount Due", `${bill.amount.toFixed(2)} ${bill.currency}`],
+        ],
+        theme: 'striped',
+        styles: { fontSize: 9, cellPadding: 4, fontStyle: 'normal' },
+        columnStyles: {
+          0: { fontStyle: 'bold', fillColor: [240, 242, 245], cellWidth: 40 },
+          1: { cellWidth: 55 },
+          2: { fontStyle: 'bold', fillColor: [240, 242, 245], cellWidth: 40 },
+          3: { cellWidth: 55 }
+        }
+      });
+
+      // Payment registry section
+      const registryY = (doc as any).lastAutoTable.finalY + 15;
+      doc.setFontSize(13);
+      doc.setTextColor(17, 21, 28);
+      doc.setFont("helvetica", "bold");
+      doc.text(t.payment_registry || "PAYMENT REGISTRY", 14, registryY);
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(110, 115, 125);
+      doc.text(t.last_5_cycles || "Last 5 cycles history:", 14, registryY + 6);
+
+      const historyRows = [
+        ["2024-03-12", `${bill.amount.toFixed(2)} EGP`, language === "AR" ? "ناجح" : "Successful", "TXN-8829"],
+        ["2024-02-14", `${(bill.amount * 0.98).toFixed(2)} EGP`, language === "AR" ? "ناجح" : "Successful", "TXN-7731"],
+        ["2024-01-10", `${bill.amount.toFixed(2)} EGP`, language === "AR" ? "ناجح" : "Successful", "TXN-6612"],
+        ["2023-12-15", `${(bill.amount * 1.05).toFixed(2)} EGP`, language === "AR" ? "ناجح" : "Successful", "TXN-5509"],
+        ["2023-11-20", `${bill.amount.toFixed(2)} EGP`, language === "AR" ? "ناجح" : "Successful", "TXN-4491"]
+      ];
+
+      // @ts-ignore
+      autoTable(doc, {
+        startY: registryY + 10,
+        head: [["Transaction Date", "Settlement Amount", "Status", "Reference Code"]],
+        body: historyRows,
+        theme: 'grid',
+        headStyles: { fillColor: [17, 21, 28], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 8.5, cellPadding: 3.5 }
+      });
+
+      // Stamp and legal disclaimer footer
+      const finalY = (doc as any).lastAutoTable.finalY + 20;
+      doc.setDrawColor(230, 235, 240);
+      doc.line(14, finalY, 196, finalY);
+
+      doc.setFontSize(8);
+      doc.setTextColor(150, 155, 165);
+      doc.text("BillMatrix Ledger Intelligence - Compliance Verification Statement", 14, finalY + 10);
+      doc.text(`Verification Stamp: ${Math.random().toString(36).substring(2, 10).toUpperCase()}`, 14, finalY + 15);
+
+      doc.save(`BillMatrix_Statement_${bill.provider.replace(/\s+/g, "_")}_${bill.dueDate}.pdf`);
+    } catch (err) {
+      console.error("Failed to generate PDF statement:", err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (!bill) return null;
 
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-surface/80 backdrop-blur-sm">
         <motion.div 
+          id="bill-modal-content"
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -74,6 +188,7 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({ bill, onClose,
             </div>
             <button 
               onClick={onClose}
+              data-html2canvas-ignore="true"
               className="p-2 hover:bg-surface-container-highest rounded-full text-on-surface-variant transition-colors"
             >
               <X size={20} />
@@ -114,6 +229,30 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({ bill, onClose,
                 <p className="font-sans text-sm font-semibold text-on-surface">{language === "AR" ? (bill.frequency === "Monthly" ? "شهري" : bill.frequency || "مرة واحدة") : (bill.frequency || "Once-off")}</p>
               </div>
             </div>
+
+            {/* VAT Breakdown Section */}
+            {(() => {
+              const totalAmount = bill.amount;
+              const baseAmount = bill.baseAmount ?? (totalAmount / 1.14);
+              const vatAmount = bill.vatAmount ?? (totalAmount - baseAmount);
+              return (
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl space-y-2.5">
+                  <div className="flex items-center justify-between text-xs text-on-surface-variant">
+                    <span className="font-sans font-semibold">{language === "AR" ? "المبلغ الأساسي (قبل الضريبة):" : "Base Amount (Excl. VAT):"}</span>
+                    <span className="font-mono font-bold text-sm text-on-surface">{baseAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] opacity-60 font-semibold">{t.egp}</span></span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-on-surface-variant">
+                    <span className="font-sans font-semibold">{language === "AR" ? "ضريبة القيمة المضافة (14%):" : "VAT (14%):"}</span>
+                    <span className="font-mono font-bold text-sm text-primary">{vatAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] opacity-60 font-semibold">{t.egp}</span></span>
+                  </div>
+                  <div className="h-px bg-outline-variant/30 my-1" />
+                  <div className="flex items-center justify-between text-sm text-on-surface font-bold">
+                    <span className="font-sans font-black">{language === "AR" ? "الإجمالي المستحق (شامل الضريبة):" : "Total Due (VAT Incl.):"}</span>
+                    <span className="font-mono text-primary text-base font-black">{totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs font-bold">{t.egp}</span></span>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Payment History Mockup */}
             <div className="space-y-4">
@@ -159,8 +298,13 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({ bill, onClose,
           </div>
 
           {/* Footer Actions */}
-          <div className="p-6 bg-surface-container-highest flex gap-3">
-            <button className="flex-1 h-12 bg-primary text-on-primary rounded-xl font-headline font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all">
+          <div data-html2canvas-ignore="true" className="p-6 bg-surface-container-highest flex gap-3">
+            <button 
+              onClick={handleDownloadStatement}
+              disabled={isExporting}
+              className="flex-1 h-12 bg-primary text-on-primary rounded-xl font-headline font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isExporting && <Loader2 className="animate-spin" size={16} />}
               {t.download_statement}
             </button>
             <button 

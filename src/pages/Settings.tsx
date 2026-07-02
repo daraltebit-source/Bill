@@ -13,6 +13,7 @@ import { translations, Language } from "../translations";
 import { GoogleSheetsSync } from "../components/GoogleSheetsSync";
 import { GoogleCalendarSync } from "../components/GoogleCalendarSync";
 import { Bill } from "../types";
+import { DevicePermissionsCenter } from "../components/DevicePermissionsCenter";
 
 interface SettingsPageProps {
   language: Language;
@@ -186,6 +187,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             bills={bills}
             autoCalendarSync={autoCalendarSync}
             onAutoCalendarSyncToggle={onAutoCalendarSyncToggle}
+            onSuccessMessage={onSuccessMessage}
+          />
+        </section>
+
+        {/* Device Permissions & Local Storage Management */}
+        <section className="space-y-4 pt-4 border-t border-outline-variant/30">
+          <DevicePermissionsCenter
+            language={language}
+            bills={bills}
+            onBillsImported={onBillsImported}
             onSuccessMessage={onSuccessMessage}
           />
         </section>

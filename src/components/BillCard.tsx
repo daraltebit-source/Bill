@@ -103,7 +103,7 @@ export const BillCard: React.FC<{ bill: Bill; language: Language; onDelete?: (id
   );
 };
 
-export const BillListItem: React.FC<{ bill: Bill; language: Language; onDelete?: (id: string) => void; onViewDetails?: (bill: Bill) => void }> = ({ bill, language, onDelete, onViewDetails }) => {
+export const BillListItem: React.FC<{ bill: Bill; language: Language; onDelete?: (id: string) => void; onViewDetails?: (bill: Bill) => void; onMarkPaid?: (id: string) => void }> = ({ bill, language, onDelete, onViewDetails, onMarkPaid }) => {
   const t = translations[language];
   
   const getServiceLabel = (s: string) => {
@@ -181,13 +181,22 @@ export const BillListItem: React.FC<{ bill: Bill; language: Language; onDelete?:
               </button>
             )}
           </div>
-          <button className={cn(
-            "rounded-xl px-8 py-3.5 font-headline text-sm font-bold transition-all active:scale-95 shadow-md min-w-[130px] tracking-tight",
-            bill.status === "Unpaid" 
-              ? "bg-primary text-on-primary hover:brightness-110 shadow-primary/20" 
-              : "bg-surface-container-highest/60 border border-outline text-on-surface hover:bg-surface-container-highest"
-          )}>
-            {bill.status === "Unpaid" ? t.pay_now : t.manage}
+          <button 
+            disabled={bill.status === "Paid"}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onMarkPaid && bill.status !== "Paid") {
+                onMarkPaid(bill.id);
+              }
+            }}
+            className={cn(
+              "rounded-xl px-8 py-3.5 font-headline text-sm font-bold transition-all active:scale-95 shadow-md min-w-[130px] tracking-tight",
+              bill.status === "Paid"
+                ? "bg-tertiary/10 text-tertiary border border-tertiary/20 shadow-none cursor-default"
+                : "bg-primary text-on-primary hover:brightness-110 shadow-primary/20 cursor-pointer"
+            )}
+          >
+            {bill.status === "Paid" ? t.paid : t.mark_paid}
           </button>
         </div>
       </div>

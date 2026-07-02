@@ -1,11 +1,14 @@
 import React, { useState, useRef } from "react";
-import { Search, FileText, Download, Upload, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Search, FileText, Download, Upload, AlertCircle, CheckCircle2, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { BillListItem } from "../components/BillCard";
 import { BillDetailModal } from "../components/BillDetailModal";
 import { DeleteConfirmationModal } from "../components/DeleteConfirmationModal";
 import { cn } from "../lib/utils";
 import { Bill, UtilityType, BillStatus } from "../types";
 import { translations, Language } from "../translations";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import { DatePicker } from "../components/DatePicker";
 
 export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.SetStateAction<Bill[]>>; language: Language }> = ({ bills, setBills, language }) => {
   const t = translations[language];
@@ -21,6 +24,124 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [billToDelete, setBillToDelete] = useState<Bill | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSaveCSV = () => {
+    if (bills.length === 0) return;
+    const headers = ["Provider", "ServiceType", "Amount", "Currency", "DueDate", "Status", "AccountNumber", "BranchName", "Recurring", "Frequency"];
+    const rows = bills.map(b => [
+      b.provider,
+      b.serviceType,
+      b.amount,
+      b.currency,
+      b.dueDate,
+      b.status,
+      b.accountNumber || "",
+      b.branchName || "",
+      b.recurring ? "TRUE" : "FALSE",
+      b.frequency || ""
+    ]);
+    const csvContent = [headers.join(","), ...rows.map(r => r.map(val => `"${val}"`).join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `billmatrix_ledger_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePrint = () => {
+    if (filteredBills.length === 0) return;
+    try {
+      const doc = new jsPDF();
+      
+      // Document header with elegant branding
+      doc.setFontSize(22);
+      doc.setTextColor(20, 25, 35);
+      doc.text("BILLMATRIX EXPENDITURE STATEMENT", 14, 20);
+      
+      // Subtitle with meta details
+      doc.setFontSize(9);
+      doc.setTextColor(110, 115, 125);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 27);
+      doc.text(`Active filters: Status [${statusFilter}] | Service [${typeFilter}] | Branch [${branchFilter}]`, 14, 32);
+      
+      // Calculate totals by currency
+      const totalsByCurrency = filteredBills.reduce((acc, curr) => {
+        acc[curr.currency] = (acc[curr.currency] || 0) + curr.amount;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const totalString = Object.entries(totalsByCurrency)
+        .map(([curr, amt]) => `${(amt as number).toFixed(2)} ${curr}`)
+        .join(" | ");
+
+      // Section label
+      doc.setFontSize(13);
+      doc.setTextColor(40, 45, 55);
+      doc.text("LEDGER METRICS SUMMARY", 14, 44);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(80, 85, 95);
+      doc.text(`Total Obligations Count: ${filteredBills.length} records matching current criteria.`, 14, 52);
+      doc.text(`Sum Total of Filtered Obligations: ${totalString || "0.00 EGP"}`, 14, 58);
+      
+      // Build Table column definitions & mapping rows
+      const tableColumn = ["Provider", "Service Type", "Amount", "Currency", "Due Date", "Status", "Account Number", "Branch"];
+      const tableRows = filteredBills.map(bill => [
+        bill.provider,
+        bill.serviceType,
+        bill.amount.toFixed(2),
+        bill.currency,
+        bill.dueDate,
+        bill.status,
+        bill.accountNumber || "N/A",
+        bill.branchName || "N/A"
+      ]);
+
+      // Render the table beautifully using autoTable
+      // @ts-ignore
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 65,
+        theme: 'grid',
+        headStyles: { 
+          fillColor: [17, 21, 28], // Slate dark theme primary header color
+          textColor: [255, 255, 255],
+          fontSize: 9,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        bodyStyles: { 
+          fontSize: 8,
+          textColor: [50, 55, 65]
+        },
+        columnStyles: {
+          2: { halign: 'right' }, // Right align amount column
+          3: { halign: 'center' },
+          4: { halign: 'center' },
+          5: { halign: 'center' }
+        },
+        margin: { top: 10 }
+      });
+
+      // Simple footer with dynamic page counts
+      const pageCount = (doc as any).internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 155, 165);
+        doc.text(`BillMatrix Ledger Intelligence - Compliance Ledger Document - Page ${i} of ${pageCount}`, 14, 285);
+      }
+
+      doc.save(`BillMatrix_Filtered_Statement_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error("Failed to generate PDF export:", error);
+    }
+  };
 
   const categories = ["All", "Paid", "Unpaid", "Pending", "Draft", "Overdue"];
   const serviceFilters = ["All", "Internet", "Landline", "Water", "Mobile"];
@@ -146,6 +267,72 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
     }
   };
 
+  const handleMarkPaid = (id: string) => {
+    const targetBill = bills.find(b => b.id === id);
+    if (!targetBill) return;
+
+    const updatedBills = bills.map(b => b.id === id ? { ...b, status: "Paid" as const } : b);
+
+    if (targetBill.recurring) {
+      const currentDate = new Date(targetBill.dueDate);
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const day = currentDate.getDate();
+
+      let monthsToAdd = 1;
+      if (targetBill.frequency === "Quarterly") {
+        monthsToAdd = 3;
+      } else if (targetBill.frequency === "Annually") {
+        monthsToAdd = 12;
+      }
+
+      let nextYear = year;
+      let nextMonth = month + monthsToAdd;
+      while (nextMonth > 11) {
+        nextMonth -= 12;
+        nextYear += 1;
+      }
+
+      const maxDaysInNextMonth = new Date(nextYear, nextMonth + 1, 0).getDate();
+      const clampedDay = Math.min(day, maxDaysInNextMonth);
+
+      const nextDate = new Date(nextYear, nextMonth, clampedDay);
+
+      if (targetBill.serviceType === "Internet") {
+        let daysToSubtract = 0;
+        for (let i = 0; i < monthsToAdd; i++) {
+          let checkMonth = month + i;
+          let checkYear = year;
+          while (checkMonth > 11) {
+            checkMonth -= 12;
+            checkYear += 1;
+          }
+          const daysInCheckMonth = new Date(checkYear, checkMonth + 1, 0).getDate();
+          if (daysInCheckMonth === 31) {
+            daysToSubtract += 1;
+          }
+        }
+        nextDate.setDate(nextDate.getDate() - daysToSubtract);
+      }
+
+      const yyyy = nextDate.getFullYear();
+      const mm = String(nextDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(nextDate.getDate()).padStart(2, '0');
+      const nextDueDateStr = `${yyyy}-${mm}-${dd}`;
+
+      const newNextMonthBill: Bill = {
+        ...targetBill,
+        id: `recurring-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        dueDate: nextDueDateStr,
+        status: "Unpaid" as const,
+      };
+
+      setBills([newNextMonthBill, ...updatedBills]);
+    } else {
+      setBills(updatedBills);
+    }
+  };
+
   return (
     <main className="mt-8 px-4 max-w-2xl mx-auto pb-32">
       {/* Header with technical label */}
@@ -206,154 +393,181 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
                 placeholder={searchTarget === "provider" ? t.search_placeholder : (language === "AR" ? "البحث برقم الحساب..." : "Search by account number...")}
               />
             </div>
-            
-            <button 
-              onClick={handleImportClick}
-              className="h-[60px] px-6 bg-surface-container-high/60 border border-outline text-on-surface rounded-2xl flex items-center gap-3 hover:bg-primary hover:text-white hover:border-primary transition-all active:scale-[0.98] group shadow-sm"
-            >
-              <Upload size={20} strokeWidth={2.5} className="group-hover:-translate-y-1 transition-transform" />
-              <span className="technical-label !text-current hidden sm:inline">{t.import}</span>
-            </button>
-            
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileUpload} 
-              accept=".csv" 
-              className="hidden" 
-            />
           </div>
         </div>
 
-        {importStatus && (
-          <div className={cn(
-            "p-4 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-2 bill-card-shadow",
-            importStatus.type === 'success' ? "bg-tertiary/5 text-tertiary border-tertiary/20" : "bg-error/5 text-error border-error/20"
-          )}>
-            <div className={cn(
-              "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-              importStatus.type === 'success' ? "bg-tertiary/10" : "bg-error/10"
-            )}>
-              {importStatus.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+        <div className="flex flex-col gap-6 bg-surface-container-low/40 p-6 rounded-3xl border border-outline/50 bill-card-shadow">
+          <div className="flex items-center justify-between border-b border-outline/30 pb-3">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal size={14} className="text-primary" />
+              <span className="font-sans font-bold text-[13px] tracking-tight text-on-surface">
+                {language === "AR" ? "تصفية السجلات" : "Filter Records"}
+              </span>
             </div>
-            <span className="text-[13px] font-bold font-mono tracking-tight uppercase leading-none">{importStatus.message}</span>
-            <button 
-              onClick={() => setImportStatus(null)}
-              className="ml-auto p-2 opacity-50 hover:opacity-100 transition-opacity"
-            >
-              <FileText size={14} className="rotate-45" />
-            </button>
-          </div>
-        )}
-        
-        <div className="flex flex-col gap-6 bg-surface-container-low/20 p-6 rounded-3xl border border-outline/50 bill-card-shadow">
-          <div className="space-y-3">
-            <span className="technical-label px-1">{t.status}</span>
-            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setStatusFilter(cat)}
-                  className={cn(
-                    "px-5 py-2.5 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
-                    statusFilter === cat 
-                      ? "bg-primary text-on-primary border-primary shadow-lg shadow-primary/20" 
-                      : "bg-surface-container-high text-on-surface-variant border-outline-variant hover:border-primary/50"
-                  )}
-                >
-                  {getTranslatedLabel(cat)}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <span className="technical-label px-1">{t.asset}</span>
-              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                {serviceFilters.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setTypeFilter(cat)}
-                    className={cn(
-                      "px-5 py-2.5 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
-                      typeFilter === cat 
-                        ? "bg-primary text-on-primary border-primary shadow-lg shadow-primary/20" 
-                        : "bg-surface-container-high text-on-surface-variant border-outline-variant hover:border-primary/50"
-                    )}
-                  >
-                    {getTranslatedLabel(cat)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <span className="technical-label px-1">{t.branch}</span>
-              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                {branchOptions.map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => setBranchFilter(opt)}
-                    className={cn(
-                      "px-5 py-2.5 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
-                      branchFilter === opt 
-                        ? "bg-primary text-on-primary border-primary shadow-lg shadow-primary/20" 
-                        : "bg-surface-container-high text-on-surface-variant border-outline-variant hover:border-primary/50"
-                    )}
-                  >
-                    {opt === "All" ? getTranslatedLabel(opt) : opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-            <div className="space-y-3">
-              <span className="technical-label px-1">{t.period}</span>
-              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                {dateRangeOptions.map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => setDateRangeType(opt)}
-                    className={cn(
-                      "px-5 py-2.5 rounded-xl font-mono text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all border",
-                      dateRangeType === opt 
-                        ? "bg-primary text-on-primary border-primary shadow-lg shadow-primary/20" 
-                        : "bg-surface-container-high text-on-surface-variant border-outline-variant hover:border-primary/50"
-                    )}
-                  >
-                    {getTranslatedLabel(opt)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {dateRangeType === "Custom" && (
-              <div className="flex items-center gap-4 bg-surface-container-highest/20 p-3 rounded-2xl border border-outline/50 animate-in fade-in slide-in-from-right-4 duration-300">
-                <div className="flex-1 flex flex-col gap-0.5 px-2">
-                  <span className="text-[8px] font-bold text-on-surface-variant uppercase tracking-wider opacity-60">{t.from}</span>
-                  <input 
-                    type="date" 
-                    value={customRange.start}
-                    onChange={(e) => setCustomRange(prev => ({ ...prev, start: e.target.value }))}
-                    className="bg-transparent text-[11px] font-mono text-on-surface outline-none cursor-pointer"
-                  />
-                </div>
-                <div className="w-px h-6 bg-outline-variant opacity-30" />
-                <div className="flex-1 flex flex-col gap-0.5 px-2">
-                  <span className="text-[8px] font-bold text-on-surface-variant uppercase tracking-wider opacity-60">{t.to}</span>
-                  <input 
-                    type="date" 
-                    value={customRange.end}
-                    onChange={(e) => setCustomRange(prev => ({ ...prev, end: e.target.value }))}
-                    className="bg-transparent text-[11px] font-mono text-on-surface outline-none cursor-pointer"
-                  />
-                </div>
-              </div>
+            
+            {/* Clear Filters Button (Shows only if any filter is active) */}
+            {(statusFilter !== "All" || typeFilter !== "All" || branchFilter !== "All" || recurringFilter !== "All" || dateRangeType !== "All") && (
+              <button
+                onClick={() => {
+                  setStatusFilter("All");
+                  setTypeFilter("All");
+                  setBranchFilter("All");
+                  setRecurringFilter("All");
+                  setDateRangeType("All");
+                  setCustomRange({ start: "", end: "" });
+                }}
+                className="text-[10px] font-mono font-bold uppercase tracking-wider text-primary hover:text-primary/80 transition-colors"
+              >
+                {language === "AR" ? "إعادة تعيين" : "Reset Filters"}
+              </button>
             )}
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {/* Status Filter */}
+            <div className="space-y-1.5">
+              <label className="block font-mono text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
+                {t.status}
+              </label>
+              <div className="relative">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full bg-surface/40 border border-outline rounded-xl py-3 px-4 pr-10 text-xs font-sans font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none cursor-pointer transition-all appearance-none"
+                  style={{ direction: language === "AR" ? "rtl" : "ltr" }}
+                >
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat} className="bg-[#11151C] text-on-surface">
+                      {getTranslatedLabel(cat)}
+                    </option>
+                  ))}
+                </select>
+                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", language === "AR" ? "left-3" : "right-3")}>
+                  <ChevronDown size={14} />
+                </div>
+              </div>
+            </div>
+
+            {/* Asset/Service Filter */}
+            <div className="space-y-1.5">
+              <label className="block font-mono text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
+                {t.asset}
+              </label>
+              <div className="relative">
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="w-full bg-surface/40 border border-outline rounded-xl py-3 px-4 pr-10 text-xs font-sans font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none cursor-pointer transition-all appearance-none"
+                  style={{ direction: language === "AR" ? "rtl" : "ltr" }}
+                >
+                  {serviceFilters.map((cat) => (
+                    <option key={cat} value={cat} className="bg-[#11151C] text-on-surface">
+                      {getTranslatedLabel(cat)}
+                    </option>
+                  ))}
+                </select>
+                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", language === "AR" ? "left-3" : "right-3")}>
+                  <ChevronDown size={14} />
+                </div>
+              </div>
+            </div>
+
+            {/* Branch Filter */}
+            <div className="space-y-1.5">
+              <label className="block font-mono text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
+                {t.branch}
+              </label>
+              <div className="relative">
+                <select
+                  value={branchFilter}
+                  onChange={(e) => setBranchFilter(e.target.value)}
+                  className="w-full bg-surface/40 border border-outline rounded-xl py-3 px-4 pr-10 text-xs font-sans font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none cursor-pointer transition-all appearance-none"
+                  style={{ direction: language === "AR" ? "rtl" : "ltr" }}
+                >
+                  {branchOptions.map((opt) => (
+                    <option key={opt} value={opt} className="bg-[#11151C] text-on-surface">
+                      {opt === "All" ? getTranslatedLabel(opt) : opt}
+                    </option>
+                  ))}
+                </select>
+                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", language === "AR" ? "left-3" : "right-3")}>
+                  <ChevronDown size={14} />
+                </div>
+              </div>
+            </div>
+
+            {/* Obligation Type Filter (Recurring vs One-off) */}
+            <div className="space-y-1.5">
+              <label className="block font-mono text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
+                {language === "AR" ? "نوع الالتزام" : "Obligation Type"}
+              </label>
+              <div className="relative">
+                <select
+                  value={recurringFilter}
+                  onChange={(e) => setRecurringFilter(e.target.value)}
+                  className="w-full bg-surface/40 border border-outline rounded-xl py-3 px-4 pr-10 text-xs font-sans font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none cursor-pointer transition-all appearance-none"
+                  style={{ direction: language === "AR" ? "rtl" : "ltr" }}
+                >
+                  {recurringOptions.map((opt) => (
+                    <option key={opt} value={opt} className="bg-[#11151C] text-on-surface">
+                      {getTranslatedLabel(opt)}
+                    </option>
+                  ))}
+                </select>
+                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", language === "AR" ? "left-3" : "right-3")}>
+                  <ChevronDown size={14} />
+                </div>
+              </div>
+            </div>
+
+            {/* Period Filter */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="block font-mono text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
+                {t.period}
+              </label>
+              <div className="relative">
+                <select
+                  value={dateRangeType}
+                  onChange={(e) => setDateRangeType(e.target.value)}
+                  className="w-full bg-surface/40 border border-outline rounded-xl py-3 px-4 pr-10 text-xs font-sans font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none cursor-pointer transition-all appearance-none"
+                  style={{ direction: language === "AR" ? "rtl" : "ltr" }}
+                >
+                  {dateRangeOptions.map((opt) => (
+                    <option key={opt} value={opt} className="bg-[#11151C] text-on-surface">
+                      {getTranslatedLabel(opt)}
+                    </option>
+                  ))}
+                </select>
+                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-on-surface-variant/40", language === "AR" ? "left-3" : "right-3")}>
+                  <ChevronDown size={14} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Custom Date Range Picker */}
+          {dateRangeType === "Custom" && (
+            <div className="flex flex-col sm:flex-row gap-4 bg-surface-container-highest/10 p-4 rounded-3xl border border-outline/30 animate-in fade-in slide-in-from-right-4 duration-300 w-full">
+              <div className="flex-1 flex flex-col gap-1.5">
+                <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.15em] opacity-60 px-1">{t.from}</span>
+                <DatePicker 
+                  value={customRange.start || new Date().toISOString().split('T')[0]}
+                  onChange={(val) => setCustomRange(prev => ({ ...prev, start: val }))}
+                  language={language}
+                  name="startDate"
+                />
+              </div>
+              <div className="flex-1 flex flex-col gap-1.5">
+                <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.15em] opacity-60 px-1">{t.to}</span>
+                <DatePicker 
+                  value={customRange.end || new Date().toISOString().split('T')[0]}
+                  onChange={(val) => setCustomRange(prev => ({ ...prev, end: val }))}
+                  language={language}
+                  name="endDate"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -372,7 +586,7 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
         </div>
         <div className="space-y-4">
           {filteredBills.map(bill => (
-            <BillListItem key={bill.id} bill={bill} onDelete={handleDeleteBill} onViewDetails={setSelectedBill} language={language} />
+            <BillListItem key={bill.id} bill={bill} onDelete={handleDeleteBill} onViewDetails={setSelectedBill} onMarkPaid={handleMarkPaid} language={language} />
           ))}
         </div>
         {filteredBills.length === 0 && (
@@ -403,11 +617,17 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
 
       {/* Export Actions - Technical Style */}
       <div className="mt-16 pt-8 border-t border-outline/30 flex flex-col sm:flex-row justify-center gap-6">
-        <button className="group flex items-center gap-4 px-10 py-4.5 border border-outline rounded-2xl font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface hover:bg-primary hover:text-on-primary hover:border-primary transition-all duration-300 active:scale-95 bill-card-shadow">
+        <button 
+          onClick={handlePrint}
+          className="group flex items-center gap-4 px-10 py-4.5 border border-outline rounded-2xl font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface hover:bg-primary hover:text-on-primary hover:border-primary transition-all duration-300 active:scale-95 bill-card-shadow"
+        >
           <FileText size={18} className="group-hover:scale-110 transition-transform" />
           {t.print_pdf}
         </button>
-        <button className="group flex items-center gap-4 px-10 py-4.5 border border-outline rounded-2xl font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface hover:bg-tertiary hover:text-on-tertiary hover:border-tertiary transition-all duration-300 active:scale-95 bill-card-shadow">
+        <button 
+          onClick={handleSaveCSV}
+          className="group flex items-center gap-4 px-10 py-4.5 border border-outline rounded-2xl font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface hover:bg-tertiary hover:text-on-tertiary hover:border-tertiary transition-all duration-300 active:scale-95 bill-card-shadow"
+        >
           <Download size={18} className="group-hover:translate-y-0.5 transition-transform" />
           {t.save_csv}
         </button>
