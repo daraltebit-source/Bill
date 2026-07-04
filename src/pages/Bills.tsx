@@ -9,6 +9,22 @@ import { translations, Language } from "../translations";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { DatePicker } from "../components/DatePicker";
+import { motion } from "motion/react";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 120, damping: 14 } }
+};
 
 export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.SetStateAction<Bill[]>>; language: Language }> = ({ bills, setBills, language }) => {
   const t = translations[language];
@@ -22,7 +38,13 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
   const [searchTarget, setSearchTarget] = useState<"provider" | "account">("provider");
   const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+  const [isEditingSelected, setIsEditingSelected] = useState(false);
   const [billToDelete, setBillToDelete] = useState<Bill | null>(null);
+
+  const handleEditBill = (bill: Bill) => {
+    setSelectedBill(bill);
+    setIsEditingSelected(true);
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveCSV = () => {
@@ -55,18 +77,55 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
   const handlePrint = () => {
     if (filteredBills.length === 0) return;
     try {
-      const doc = new jsPDF();
+      const doc = new jsPDF("p", "mm", "a4");
       
-      // Document header with elegant branding
-      doc.setFontSize(22);
-      doc.setTextColor(20, 25, 35);
-      doc.text("BILLMATRIX EXPENDITURE STATEMENT", 14, 20);
+      // Page setup & styling helper variables
+      const primaryColor = [129, 140, 248]; // Indigo #818CF8
+      const darkColor = [15, 23, 42]; // Slate #0F172A
+      const lightColor = [248, 250, 252]; // Slate 50
+      const strokeColor = [226, 232, 240]; // Slate 200
+
+      // 1. Sleek Top Header Banner
+      doc.setFillColor(15, 23, 42); // Deep obsidian/slate
+      doc.rect(0, 0, 210, 48, "F");
+
+      // Header top accent line (Primary Indigo)
+      doc.setFillColor(129, 140, 248);
+      doc.rect(0, 48, 210, 3, "F");
+
+      // Brand Title & Info
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("The report was prepared by the IT department.", 14, 23);
+
+      // Subtitle
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(194, 205, 225); // Slate 300
+      doc.text("Filtered Expenditure & Status Ledger", 14, 29);
+
+      // Metas
+      doc.setFontSize(8.5);
+      doc.setTextColor(148, 163, 184); // Slate 400
+      doc.text(`LEDGER SCOPE: ACTIVE REAL-TIME REGISTRY`, 14, 38);
       
-      // Subtitle with meta details
-      doc.setFontSize(9);
-      doc.setTextColor(110, 115, 125);
-      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 27);
-      doc.text(`Active filters: Status [${statusFilter}] | Service [${typeFilter}] | Branch [${branchFilter}]`, 14, 32);
+      const genDateStr = new Date().toLocaleString();
+      doc.text(`GENERATED ON: ${genDateStr.toUpperCase()}`, 14, 43);
+
+      // Add a nice visual indicator badge in the top right
+      doc.setFillColor(30, 41, 59); // Dark slate badge
+      doc.roundedRect(145, 14, 51, 14, 2, 2, "F");
+      doc.setTextColor(129, 140, 248); // Indigo
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text("SECURE RECONCILIATION", 148, 23);
+
+      // 2. Executive Summary section header
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.setFont("helvetica", "bold");
+      doc.text("FILTERED LEDGER METRICS SUMMARY", 14, 62);
       
       // Calculate totals by currency
       const totalsByCurrency = filteredBills.reduce((acc, curr) => {
@@ -75,25 +134,76 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
       }, {} as Record<string, number>);
       
       const totalString = Object.entries(totalsByCurrency)
-        .map(([curr, amt]) => `${(amt as number).toFixed(2)} ${curr}`)
+        .map(([curr, amt]) => `${(amt as number).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${curr}`)
         .join(" | ");
 
-      // Section label
-      doc.setFontSize(13);
-      doc.setTextColor(40, 45, 55);
-      doc.text("LEDGER METRICS SUMMARY", 14, 44);
+      // Draw the beautiful 3 KPI Cards!
+      // Card 1: RECORDS COUNT
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(14, 68, 58, 24, 3, 3, "FD");
       
-      doc.setFontSize(10);
-      doc.setTextColor(80, 85, 95);
-      doc.text(`Total Obligations Count: ${filteredBills.length} records matching current criteria.`, 14, 52);
-      doc.text(`Sum Total of Filtered Obligations: ${totalString || "0.00 EGP"}`, 14, 58);
+      doc.setFillColor(129, 140, 248); // Indigo
+      doc.rect(14, 68, 1.5, 24, "F");
+
+      doc.setTextColor(100, 116, 139);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.text("RECORDS COUNT", 18, 75);
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(12.5);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${filteredBills.length} Obligations`, 18, 85);
+
+      // Card 2: TOTAL VALUE
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(76, 68, 58, 24, 3, 3, "FD");
+
+      doc.setFillColor(52, 211, 153); // Green
+      doc.rect(76, 68, 1.5, 24, "F");
+
+      doc.setTextColor(100, 116, 139);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.text("AGGREGATED VALUE", 80, 75);
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(10.5);
+      doc.setFont("helvetica", "bold");
+      doc.text(totalString || "0.00 EGP", 80, 84);
+
+      // Card 3: FILTER CONTROLS
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(138, 68, 58, 24, 3, 3, "FD");
+
+      doc.setFillColor(248, 113, 113); // Red
+      doc.rect(138, 68, 1.5, 24, "F");
+
+      doc.setTextColor(100, 116, 139);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.text("ACTIVE FILTER CONTROLS", 142, 75);
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Status: ${statusFilter}`, 142, 82);
+      doc.text(`Type/Branch: ${typeFilter}/${branchFilter}`, 142, 87);
       
+      // Sort bills ascending by Due Date
+      const sortedBills = [...filteredBills].sort((a, b) => {
+        const dateA = new Date(a.dueDate).getTime();
+        const dateB = new Date(b.dueDate).getTime();
+        return dateA - dateB;
+      });
+
       // Build Table column definitions & mapping rows
       const tableColumn = ["Provider", "Service Type", "Amount", "Currency", "Due Date", "Status", "Account Number", "Branch"];
-      const tableRows = filteredBills.map(bill => [
+      const tableRows = sortedBills.map(bill => [
         bill.provider,
         bill.serviceType,
-        bill.amount.toFixed(2),
+        bill.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
         bill.currency,
         bill.dueDate,
         bill.status,
@@ -104,28 +214,47 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
       // Render the table beautifully using autoTable
       // @ts-ignore
       autoTable(doc, {
+        startY: 105,
+        margin: { top: 20, bottom: 25, left: 14, right: 14 },
         head: [tableColumn],
         body: tableRows,
-        startY: 65,
-        theme: 'grid',
+        theme: 'striped',
         headStyles: { 
-          fillColor: [17, 21, 28], // Slate dark theme primary header color
+          fillColor: [15, 23, 42], // Match dark header slate
           textColor: [255, 255, 255],
-          fontSize: 9,
+          fontSize: 8.5,
           fontStyle: 'bold',
-          halign: 'center'
+          valign: 'middle'
         },
-        bodyStyles: { 
-          fontSize: 8,
-          textColor: [50, 55, 65]
+        styles: { 
+          fontSize: 7.5,
+          cellPadding: 3,
+          textColor: [50, 55, 65],
+          valign: 'middle'
         },
         columnStyles: {
           2: { halign: 'right' }, // Right align amount column
           3: { halign: 'center' },
           4: { halign: 'center' },
-          5: { halign: 'center' }
+          5: { halign: 'center' },
+          6: { halign: 'center' },
+          7: { halign: 'left' }
         },
-        margin: { top: 10 }
+        didParseCell: function(data) {
+          if (data.section === 'body' && data.column.index === 5) {
+            const status = data.cell.raw;
+            if (status === 'Paid') {
+              data.cell.styles.textColor = [16, 124, 65]; // Green
+              data.cell.styles.fontStyle = 'bold';
+            } else if (status === 'Overdue') {
+              data.cell.styles.textColor = [220, 53, 69]; // Red
+              data.cell.styles.fontStyle = 'bold';
+            } else if (status === 'Pending' || status === 'Unpaid') {
+              data.cell.styles.textColor = [217, 119, 6]; // Darker amber
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        }
       });
 
       // Simple footer with dynamic page counts
@@ -133,18 +262,26 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
-        doc.setTextColor(150, 155, 165);
-        doc.text(`BillMatrix Ledger Intelligence - Compliance Ledger Document - Page ${i} of ${pageCount}`, 14, 285);
+        doc.setTextColor(148, 163, 184); // Slate 400
+        doc.setFont("helvetica", "normal");
+        
+        // Horizontal rule above footer
+        doc.setDrawColor(241, 245, 249);
+        doc.setLineWidth(0.2);
+        doc.line(14, 280, 196, 280);
+
+        doc.text("The report was prepared by the IT department.", 14, 286);
+        doc.text(`Page ${i} of ${pageCount}`, 196, 286, { align: 'right' });
       }
 
-      doc.save(`BillMatrix_Filtered_Statement_${new Date().toISOString().split('T')[0]}.pdf`);
+      doc.save(`IT_Department_Filtered_Statement_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error("Failed to generate PDF export:", error);
     }
   };
 
   const categories = ["All", "Paid", "Unpaid", "Pending", "Draft", "Overdue"];
-  const serviceFilters = ["All", "Internet", "Landline", "Water", "Mobile"];
+  const serviceFilters = ["All", "Internet", "Landline", "Mobile"];
   const branchOptions = ["All", ...Array.from(new Set(bills.map(b => b.branchName).filter(Boolean))) as string[]];
   const recurringOptions = ["All", "Recurring", "One-off"];
   const dateRangeOptions = ["All", "30 Days", "90 Days", "This Year", "Custom"];
@@ -334,9 +471,14 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
   };
 
   return (
-    <main className="mt-8 px-4 max-w-2xl mx-auto pb-32">
+    <motion.main 
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="mt-8 px-4 max-w-4xl mx-auto pb-32"
+    >
       {/* Header with technical label */}
-      <div className="flex flex-col gap-2 blueprint-header -mx-4 px-4 mb-8">
+      <motion.div variants={itemVariants} className="flex flex-col gap-2 blueprint-header -mx-4 px-4 mb-8">
         <div className="flex items-center justify-between">
           <h1 className="font-headline text-3xl font-bold tracking-tight text-on-surface">{t.bills}</h1>
           <div className="flex flex-col items-end">
@@ -347,10 +489,10 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Search and Filter Section */}
-      <section className="mb-10 flex flex-col gap-6">
+      <motion.section variants={itemVariants} className="mb-10 flex flex-col gap-6">
         <div className="flex flex-col gap-4 bg-surface-container-low/40 p-5 rounded-3xl border border-outline/50 bill-card-shadow">
           <div className="flex items-center justify-between px-1">
             <span className="technical-label opacity-60 italic">{t.search_by}</span>
@@ -569,10 +711,10 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
             </div>
           )}
         </div>
-      </section>
+      </motion.section>
 
       {/* Bill Cards List */}
-      <div className="space-y-6">
+      <motion.div variants={itemVariants} className="space-y-6">
         <div className="flex items-center justify-between px-1 mb-2">
            <div className="flex flex-col">
               <h2 className="text-[12px] font-bold text-on-surface font-headline tracking-tight">{t.showing} {filteredBills.length} {t.records}</h2>
@@ -586,7 +728,15 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
         </div>
         <div className="space-y-4">
           {filteredBills.map(bill => (
-            <BillListItem key={bill.id} bill={bill} onDelete={handleDeleteBill} onViewDetails={setSelectedBill} onMarkPaid={handleMarkPaid} language={language} />
+            <BillListItem 
+              key={bill.id} 
+              bill={bill} 
+              onDelete={handleDeleteBill} 
+              onViewDetails={setSelectedBill} 
+              onEdit={handleEditBill}
+              onMarkPaid={handleMarkPaid} 
+              language={language} 
+            />
           ))}
         </div>
         {filteredBills.length === 0 && (
@@ -597,14 +747,18 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
             <p className="font-mono text-sm text-on-surface-variant/40 italic font-bold tracking-tight uppercase">{t.no_records}</p>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Detail Overlay */}
       <BillDetailModal 
         bill={selectedBill} 
-        onClose={() => setSelectedBill(null)} 
+        onClose={() => {
+          setSelectedBill(null);
+          setIsEditingSelected(false);
+        }} 
         onUpdate={handleUpdateBill}
         language={language}
+        initialEditMode={isEditingSelected}
       />
 
       {/* Delete Confirmation Overlay */}
@@ -616,7 +770,7 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
       />
 
       {/* Export Actions - Technical Style */}
-      <div className="mt-16 pt-8 border-t border-outline/30 flex flex-col sm:flex-row justify-center gap-6">
+      <motion.div variants={itemVariants} className="mt-16 pt-8 border-t border-outline/30 flex flex-col sm:flex-row justify-center gap-6">
         <button 
           onClick={handlePrint}
           className="group flex items-center gap-4 px-10 py-4.5 border border-outline rounded-2xl font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface hover:bg-primary hover:text-on-primary hover:border-primary transition-all duration-300 active:scale-95 bill-card-shadow"
@@ -631,7 +785,7 @@ export const Bills: React.FC<{ bills: Bill[]; setBills: React.Dispatch<React.Set
           <Download size={18} className="group-hover:translate-y-0.5 transition-transform" />
           {t.save_csv}
         </button>
-      </div>
-    </main>
+      </motion.div>
+    </motion.main>
   );
 };

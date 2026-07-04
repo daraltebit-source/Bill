@@ -23,8 +23,15 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [language, setLanguage] = useState<"EN" | "AR">("EN");
   const [bills, setBills] = useState<Bill[]>(() => {
+    // Perform a one-time data cleanup of previously entered/loaded bills
+    const hasBeenCleared = localStorage.getItem("billmanager_data_cleared_v1");
+    if (!hasBeenCleared) {
+      localStorage.removeItem("billmanager_bills");
+      localStorage.setItem("billmanager_data_cleared_v1", "true");
+      return [];
+    }
     const saved = localStorage.getItem("billmanager_bills");
-    return saved ? JSON.parse(saved) : initialMockBills;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const prevBillsRef = useRef<Bill[]>(bills);
@@ -38,6 +45,34 @@ export default function App() {
   });
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const [fontSize, setFontSize] = useState<"small" | "medium" | "large" | "xlarge">(() => {
+    return (localStorage.getItem("billmanager_font_size") as any) || "medium";
+  });
+
+  const [fpsMode, setFpsMode] = useState<"60" | "120">(() => {
+    return (localStorage.getItem("billmanager_fps_mode") as any) || "120";
+  });
+
+  // Apply root font size for full scalability across the program
+  useEffect(() => {
+    localStorage.setItem("billmanager_font_size", fontSize);
+    const html = document.documentElement;
+    if (fontSize === "small") {
+      html.style.fontSize = "14px";
+    } else if (fontSize === "large") {
+      html.style.fontSize = "18px";
+    } else if (fontSize === "xlarge") {
+      html.style.fontSize = "20px";
+    } else {
+      html.style.fontSize = "16px";
+    }
+  }, [fontSize]);
+
+  // Persist FPS setting
+  useEffect(() => {
+    localStorage.setItem("billmanager_fps_mode", fpsMode);
+  }, [fpsMode]);
 
   const showToast = (msg: string) => {
     setSuccessMessage(msg);
@@ -141,6 +176,10 @@ export default function App() {
           autoCalendarSync={autoCalendarSync}
           onAutoCalendarSyncToggle={setAutoCalendarSync}
           onSuccessMessage={showToast}
+          fontSize={fontSize}
+          onFontSizeChange={setFontSize}
+          fpsMode={fpsMode}
+          onFpsModeChange={setFpsMode}
         />
       );
       default: return <Dashboard bills={bills} setBills={setBills} language={language} onTabChange={setActiveTab} />;
@@ -166,11 +205,11 @@ export default function App() {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="h-full"
+              initial={{ opacity: 0, scale: 0.985, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.985, y: -12 }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+              className="h-full transform-gpu will-change-transform"
             >
               {renderContent()}
             </motion.div>

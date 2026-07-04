@@ -7,30 +7,64 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer, 
-  Cell,
-  Legend,
   LabelList
 } from "recharts";
+import { Bill } from "../types";
+import { TrendingUp } from "lucide-react";
 
-const data = [
-  { name: "Internet", current: 450, previous: 420 },
-  { name: "Landline", current: 85, previous: 90 },
-  { name: "Mobile", current: 980, previous: 920 },
-  { name: "Water", current: 200, previous: 190 },
-];
+interface ComparisonChartProps {
+  bills: Bill[];
+}
 
-export const ComparisonChart: React.FC = () => {
+export const ComparisonChart: React.FC<ComparisonChartProps> = ({ bills }) => {
+  const categories = ["Internet", "Landline", "Mobile", "Water", "Electricity"];
+  
+  const data = categories.map(cat => {
+    const catBills = bills
+      .filter(b => b.serviceType.toLowerCase() === cat.toLowerCase())
+      .sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
+      
+    const current = catBills[0] ? catBills[0].amount : 0;
+    const previous = catBills[1] ? catBills[1].amount : 0;
+    
+    return {
+      name: cat,
+      current: Number(current.toFixed(2)),
+      previous: Number(previous.toFixed(2))
+    };
+  });
+
+  const hasData = data.some(d => d.current > 0 || d.previous > 0);
+
+  if (!hasData) {
+    return (
+      <div className="w-full h-[400px] p-8 pt-4 flex flex-col items-center justify-center text-center relative">
+        <div className="absolute inset-0 bg-radial-gradient from-primary/5 via-transparent to-transparent opacity-50 pointer-events-none" />
+        <div className="w-16 h-16 rounded-3xl bg-surface-container-high/60 border border-outline/20 flex items-center justify-center text-primary/40 mb-4 shadow-inner">
+          <TrendingUp size={28} className="animate-pulse text-primary/40" />
+        </div>
+        <h4 className="font-headline text-sm font-black text-on-surface/80 uppercase tracking-wider mb-1.5">No Active Expenditure Deltas</h4>
+        <p className="text-[11px] font-mono text-on-surface-variant/60 uppercase tracking-widest max-w-xs leading-relaxed">
+          Comparison ledger will activate once billing records are detected
+        </p>
+      </div>
+    );
+  }
+
+  const maxAmount = Math.max(...data.map(d => Math.max(d.current, d.previous)));
+  const safeMaxAmount = maxAmount === 0 ? 1 : maxAmount;
+
   return (
     <div className="w-full h-[400px] p-8 pt-4">
-      <div className="mb-10 flex items-center justify-between">
+      <div className="mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-1.5 h-6 bg-primary rounded-full" />
+          <div className="w-1.5 h-6 bg-primary rounded-full animate-pulse" />
           <div className="flex flex-col">
-             <h3 className="technical-label !text-primary/60 !opacity-100">Expenditure Delta Analysis</h3>
+             <h3 className="technical-label !text-primary/80 !opacity-100">Expenditure Delta Analysis</h3>
              <span className="text-[10px] text-on-surface-variant/40 font-mono font-black uppercase tracking-widest leading-none">Side-by-side node comparison</span>
           </div>
         </div>
-        <div className="flex gap-8 bg-surface-container-high/20 px-5 py-2.5 rounded-2xl border border-white/5">
+        <div className="flex gap-6 bg-surface-container-high/20 px-5 py-2.5 rounded-2xl border border-outline/20">
            <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-md bg-primary shadow-[0_0_15px_rgba(59,130,246,0.6)]" />
               <span className="text-[10px] font-black text-on-surface uppercase tracking-widest font-mono">Current</span>
@@ -78,6 +112,9 @@ export const ComparisonChart: React.FC = () => {
             fill="#3B82F6" 
             radius={[6, 6, 0, 0]} 
             barSize={24}
+            isAnimationActive={true}
+            animationDuration={1200}
+            animationEasing="ease-out"
           >
             <LabelList 
               dataKey="current" 
@@ -94,6 +131,9 @@ export const ComparisonChart: React.FC = () => {
             fill="#2DD4BF" 
             radius={[6, 6, 0, 0]}
             barSize={24}
+            isAnimationActive={true}
+            animationDuration={1500}
+            animationEasing="ease-out"
           >
             <LabelList 
               dataKey="previous" 

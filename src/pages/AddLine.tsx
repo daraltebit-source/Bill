@@ -4,6 +4,22 @@ import { cn } from "../lib/utils";
 import { Bill, UtilityType, BillStatus } from "../types";
 import { translations, Language } from "../translations";
 import { DatePicker } from "../components/DatePicker";
+import { motion } from "motion/react";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 120, damping: 14 } }
+};
 
 export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: (bill: Bill) => void }> = ({ language, onBack, onAdd }) => {
   const t = translations[language];
@@ -49,7 +65,7 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
     setTimeout(() => {
       onAdd({
         id: `bill-${Date.now()}`,
-        provider: formData.get("provider") as string === "we" ? "Telecom Egypt (WE)" : 
+        provider: formData.get("provider") as string === "we" ? "WE" : 
                  formData.get("provider") as string === "orange" ? "Orange DSL" :
                  formData.get("provider") as string === "vodafone" ? "Vodafone Giga" : "Etisalat Connect",
         serviceType: serviceType,
@@ -90,24 +106,30 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
   }
 
   return (
-    <main className="max-w-md mx-auto px-4 py-12 pb-32">
+    <motion.main 
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="max-w-3xl mx-auto px-4 py-12 pb-32"
+    >
       {/* Breadcrumb */}
-      <button 
+      <motion.button 
+        variants={itemVariants}
         onClick={onBack}
         className={cn("flex items-center gap-2 mb-10 text-on-surface-variant hover:text-primary transition-colors group")}
       >
         <ArrowLeft size={18} className={cn("transition-transform", language === "AR" ? "rotate-180 group-hover:translate-x-1" : "group-hover:-translate-x-1")} />
         <span className="font-mono text-[11px] uppercase tracking-[0.2em] font-bold">{t.return_dashboard}</span>
-      </button>
+      </motion.button>
 
-      <div className={cn("mb-12")}>
+      <motion.div variants={itemVariants} className={cn("mb-12")}>
         <h2 className="font-headline text-[32px] font-bold text-on-surface leading-tight mb-2">{t.new_obligation}</h2>
         <p className="text-on-surface-variant text-[15px] leading-relaxed opacity-80">{t.new_obligation_desc}</p>
-      </div>
+      </motion.div>
 
       <form className="space-y-8" onSubmit={handleSubmit}>
         {/* Service Type Selection */}
-        <div className="space-y-3">
+        <motion.div variants={itemVariants} className="space-y-3">
           <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]", language === "AR" && "text-right")}>{t.select_asset}</label>
           <div className="grid grid-cols-2 gap-4">
             <button 
@@ -117,7 +139,7 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
                 "flex flex-col items-center justify-center p-6 rounded-2xl border transition-all",
                 serviceType === "Landline" 
                   ? "border-primary bg-primary/10 text-primary shadow-lg shadow-primary/10" 
-                  : "border-outline-variant bg-[#11151C] hover:border-primary/50 text-on-surface-variant"
+                  : "border-outline-variant bg-surface-container-low hover:border-primary/50 text-on-surface-variant"
               )}
             >
               <Phone className="mb-3" size={28} />
@@ -130,22 +152,22 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
                 "flex flex-col items-center justify-center p-6 rounded-2xl border transition-all",
                 serviceType === "Internet" 
                   ? "border-primary bg-primary/10 text-primary shadow-lg shadow-primary/10" 
-                  : "border-outline-variant bg-[#11151C] hover:border-primary/50 text-on-surface-variant"
+                  : "border-outline-variant bg-surface-container-low hover:border-primary/50 text-on-surface-variant"
               )}
             >
               <Globe className="mb-3" size={28} />
               <span className="font-mono text-[12px] font-bold uppercase tracking-widest">{t.fiber_net}</span>
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Form Grid */}
-        <div className="space-y-6">
+        <motion.div variants={itemVariants} className="space-y-6">
           <div className="space-y-2">
             <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]", language === "AR" && "text-right")} htmlFor="provider">{t.select_provider}</label>
             <div className="relative">
               <select 
-                className="block w-full px-4 py-4 bg-[#11151C] border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface appearance-none transition-all cursor-pointer font-medium"
+                className="block w-full px-4 py-4 bg-surface-container-low border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface appearance-none transition-all cursor-pointer font-medium"
                 id="provider" 
                 name="provider"
               >
@@ -164,7 +186,7 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
             <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]", language === "AR" && "text-right")} htmlFor="branchName">{t.branch_name}</label>
             <div className="relative">
               <input 
-                className={cn("block w-full px-4 py-4 bg-[#11151C] border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface transition-all placeholder:text-on-surface-variant/30 font-medium")}
+                className={cn("block w-full px-4 py-4 bg-surface-container-low border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface transition-all placeholder:text-on-surface-variant/30 font-medium")}
                 id="branchName" 
                 name="branchName" 
                 placeholder={language === "AR" ? "مثال: فرع هليوبوليس" : "e.g. Heliopolis Branch"} 
@@ -180,7 +202,7 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
             <div className="relative">
               <input 
                 className={cn(
-                  "block w-full px-4 py-4 bg-[#11151C] border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface transition-all placeholder:text-on-surface-variant/30 font-medium font-mono",
+                  "block w-full px-4 py-4 bg-surface-container-low border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface transition-all placeholder:text-on-surface-variant/30 font-medium font-mono",
                   errors.accountNumber ? "border-error/50 ring-1 ring-error/20" : "border-outline"
                 )}
                 id="accountNumber" 
@@ -213,14 +235,14 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
             <div className="space-y-2">
               <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]", "text-start")} htmlFor="cost">{t.monthly_limit}</label>
               <div className={cn("flex gap-2")}>
-                <div className="w-24 shrink-0 bg-[#11151C] border border-outline rounded-xl flex items-center justify-center font-bold text-xs uppercase text-primary">
+                <div className="w-24 shrink-0 bg-surface-container-low border border-outline rounded-xl flex items-center justify-center font-bold text-xs uppercase text-primary">
                   {t.egp}
                   <input type="hidden" name="currency" value="EGP" />
                 </div>
                 <div className="relative flex-1">
                   <input 
                     className={cn(
-                      "block w-full px-4 py-4 bg-[#11151C] border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface text-right font-bold transition-all",
+                      "block w-full px-4 py-4 bg-surface-container-low border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface text-right font-bold transition-all",
                       errors.cost ? "border-error/50 ring-1 ring-error/20" : "border-outline"
                     )}
                     id="cost" 
@@ -272,7 +294,7 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
                 "w-full flex items-center justify-between p-5 rounded-xl border transition-all truncate",
                 isRecurring 
                   ? "border-primary bg-primary/5 text-primary" 
-                  : "border-outline bg-[#11151C] text-on-surface-variant hover:border-outline-variant"
+                  : "border-outline bg-surface-container-low text-on-surface-variant hover:border-outline-variant"
               )}
             >
               <div className={cn("flex items-center gap-4")}>
@@ -303,7 +325,7 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
                 <label className={cn("block font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em] mb-2", "text-start")} htmlFor="frequency">{t.interval_frequency}</label>
                 <div className="relative">
                   <select 
-                    className="block w-full px-4 py-4 bg-[#11151C] border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface appearance-none transition-all cursor-pointer font-medium"
+                    className="block w-full px-4 py-4 bg-surface-container-low border border-outline rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-on-surface appearance-none transition-all cursor-pointer font-medium"
                     id="frequency" 
                     name="frequency"
                     defaultValue="Monthly"
@@ -319,18 +341,19 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Info Box */}
-        <div className={cn("card bg-primary/5 border-primary/20 p-5 flex items-start gap-4")}>
+        <motion.div variants={itemVariants} className={cn("card bg-primary/5 border-primary/20 p-5 flex items-start gap-4")}>
           <Info className="text-primary mt-0.5 shrink-0" size={20} />
           <p className={cn("text-[13px] leading-relaxed text-on-surface-variant", "text-start")}>
             <strong>Stratos Insight:</strong> {t.insight_text}
           </p>
-        </div>
+        </motion.div>
 
         {/* Save Button */}
-        <button 
+        <motion.button 
+          variants={itemVariants}
           className={cn(
             "w-full py-5 px-6 rounded-xl font-headline text-lg font-bold shadow-xl transition-all flex items-center justify-center gap-3 group border border-white/10",
             isSubmitting ? "bg-primary/50 cursor-wait" : "bg-primary text-on-primary hover:brightness-110 active:scale-[0.98] shadow-primary/20"
@@ -346,8 +369,8 @@ export const AddLine: React.FC<{ language: Language; onBack: () => void; onAdd: 
               {t.authorize_obligation}
             </>
           )}
-        </button>
+        </motion.button>
       </form>
-    </main>
+    </motion.main>
   );
 };
