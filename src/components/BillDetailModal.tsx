@@ -30,6 +30,7 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
   const [editedAccountNumber, setEditedAccountNumber] = React.useState("");
   const [editedDueDate, setEditedDueDate] = React.useState("");
   const [editedAmount, setEditedAmount] = React.useState(0);
+  const [editedBaseAmount, setEditedBaseAmount] = React.useState<string>("");
   const [editedServiceType, setEditedServiceType] = React.useState<UtilityType>("Internet");
   const [editedBranchName, setEditedBranchName] = React.useState("");
   const [editedStatus, setEditedStatus] = React.useState<BillStatus>("Unpaid");
@@ -41,6 +42,8 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
       setEditedProvider(bill.provider);
       setEditedAccountNumber(bill.accountNumber || "");
       setEditedDueDate(bill.dueDate);
+      const base = bill.baseAmount ?? (bill.amount / 1.14);
+      setEditedBaseAmount(base.toFixed(2));
       setEditedAmount(bill.amount);
       setEditedServiceType(bill.serviceType);
       setEditedBranchName(bill.branchName || "");
@@ -55,17 +58,18 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
 
   const handleSave = () => {
     if (!bill) return;
-    const baseAmount = editedAmount / 1.14;
-    const vatAmount = editedAmount - baseAmount;
+    const base = parseFloat(editedBaseAmount) || 0;
+    const totalAmount = base * 1.14;
+    const vatAmount = base * 0.14;
     
     onUpdate({
       ...bill,
       provider: editedProvider.trim(),
       accountNumber: editedAccountNumber.trim() || undefined,
       dueDate: editedDueDate,
-      amount: editedAmount,
-      baseAmount,
-      vatAmount,
+      amount: totalAmount,
+      baseAmount: base,
+      vatAmount: vatAmount,
       serviceType: editedServiceType,
       branchName: editedBranchName.trim() || undefined,
       status: editedStatus,
@@ -81,29 +85,115 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
     try {
       const doc = new jsPDF("p", "mm", "a4");
       
-      // Top elegant branding header bar
-      doc.setFillColor(17, 21, 28); // Slate dark primary theme color
-      doc.rect(0, 0, 210, 45, "F");
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(22);
-      doc.setFont("helvetica", "bold");
-      doc.text("BILLMATRIX STATEMENT", 14, 25);
-      
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.text("Electronic Ledger Record & Verification Statement", 14, 33);
-      
-      // Generation date
-      doc.setFontSize(8);
-      doc.setTextColor(200, 205, 215);
-      doc.text(`Generated on: ${new Date().toLocaleString(language === "AR" ? "ar-EG" : "en-US")}`, 14, 39);
+      // Page setup & styling helper variables
+      const primaryColor = [129, 140, 248]; // Indigo #818CF8
+      const darkColor = [15, 23, 42]; // Slate #0F172A
+      const lightColor = [248, 250, 252]; // Slate 50
+      const strokeColor = [226, 232, 240]; // Slate 200
 
-      // Section label
-      doc.setFontSize(13);
-      doc.setTextColor(17, 21, 28);
+      // 1. Sleek Top Header Banner
+      doc.setFillColor(15, 23, 42); // Deep obsidian/slate
+      doc.rect(0, 0, 210, 48, "F");
+
+      // Header top accent line (Primary Indigo)
+      doc.setFillColor(129, 140, 248);
+      doc.rect(0, 48, 210, 3, "F");
+
+      // Brand Title & Info
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("OBLIGATION METRICS", 14, 58);
+      doc.text("The report was prepared by the IT department.", 14, 23);
+
+      // Subtitle
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(194, 205, 225); // Slate 300
+      doc.text("Electronic Ledger Record & Verification Statement", 14, 29);
+
+      // Metas
+      doc.setFontSize(8.5);
+      doc.setTextColor(148, 163, 184); // Slate 400
+      doc.text(`LEDGER SCOPE: SINGLE OBLIGATION AUDIT RECORD`, 14, 38);
+      
+      const genDateStr = new Date().toLocaleString(language === "AR" ? "ar-EG" : "en-US");
+      doc.text(`GENERATED ON: ${genDateStr.toUpperCase()}`, 14, 43);
+
+      // Add a nice visual indicator badge in the top right
+      doc.setFillColor(30, 41, 59); // Dark slate badge
+      doc.roundedRect(145, 14, 51, 14, 2, 2, "F");
+      doc.setTextColor(129, 140, 248); // Indigo
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text("SECURE RECONCILIATION", 148, 23);
+
+      // 2. Executive Summary section header
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.setFont("helvetica", "bold");
+      doc.text("OBLIGATION PERFORMANCE SUMMARY", 14, 62);
+
+      // Draw the beautiful 3 KPI Cards!
+      // Card 1: AMOUNT DUE
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(14, 68, 58, 24, 3, 3, "FD");
+      
+      doc.setFillColor(129, 140, 248); // Indigo
+      doc.rect(14, 68, 1.5, 24, "F");
+
+      doc.setTextColor(100, 116, 139);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.text("TOTAL AMOUNT DUE", 18, 75);
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${bill.amount.toFixed(2)} ${bill.currency}`, 18, 84);
+
+      // Card 2: SETTLEMENT STATUS
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(76, 68, 58, 24, 3, 3, "FD");
+
+      const isPaid = bill.status === "Paid";
+      const statusColor = isPaid ? [52, 211, 153] : [248, 113, 113]; // Green or Red
+      doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+      doc.rect(76, 68, 1.5, 24, "F");
+
+      doc.setTextColor(100, 116, 139);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.text("SETTLEMENT STATUS", 80, 75);
+
+      doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+      doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+      doc.setFontSize(11.5);
+      doc.setFont("helvetica", "bold");
+      doc.text(bill.status.toUpperCase(), 80, 84);
+
+      // Card 3: SERVICE TYPE
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(138, 68, 58, 24, 3, 3, "FD");
+
+      doc.setFillColor(129, 140, 248); // Indigo
+      doc.rect(138, 68, 1.5, 24, "F");
+
+      doc.setTextColor(100, 116, 139);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.text("SERVICE TYPE", 142, 75);
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(10.5);
+      doc.setFont("helvetica", "bold");
+      doc.text(bill.serviceType.toUpperCase(), 142, 84);
+
+      // 3. Detailed specifications header
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.setFont("helvetica", "bold");
+      doc.text("DETAILED SPECIFICATIONS", 14, 105);
 
       // Main bill information grid using jsPDF autoTable
       const formattedDate = new Date(bill.dueDate).toLocaleDateString(
@@ -119,7 +209,7 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
       
       // @ts-ignore
       autoTable(doc, {
-        startY: 64,
+        startY: 110,
         margin: { left: 14, right: 14 },
         body: [
           [t.provider || "Provider", bill.provider, t.due_date || "Due Date", formattedDate],
@@ -128,7 +218,7 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
           [language === "AR" ? "الحالة" : "Status", bill.status, language === "AR" ? "المبلغ المستحق" : "Amount Due", `${bill.amount.toFixed(2)} ${bill.currency}`],
         ],
         theme: 'striped',
-        styles: { fontSize: 9, cellPadding: 4, fontStyle: 'normal' },
+        styles: { fontSize: 8.5, cellPadding: 4, fontStyle: 'normal', textColor: [50, 55, 65] },
         columnStyles: {
           0: { fontStyle: 'bold', fillColor: [240, 242, 245], cellWidth: 36 },
           1: { cellWidth: 55 },
@@ -139,12 +229,12 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
 
       // Payment registry section
       const registryY = (doc as any).lastAutoTable.finalY + 15;
-      doc.setFontSize(13);
-      doc.setTextColor(17, 21, 28);
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
       doc.setFont("helvetica", "bold");
       doc.text(t.payment_registry || "PAYMENT REGISTRY", 14, registryY);
 
-      doc.setFontSize(9);
+      doc.setFontSize(8.5);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(110, 115, 125);
       doc.text(t.last_5_cycles || "Last 5 cycles history:", 14, registryY + 6);
@@ -164,19 +254,22 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
         head: [["Transaction Date", "Settlement Amount", "Status", "Reference Code"]],
         body: historyRows,
         theme: 'grid',
-        headStyles: { fillColor: [17, 21, 28], textColor: [255, 255, 255], fontStyle: 'bold' },
-        styles: { fontSize: 8.5, cellPadding: 3.5 }
+        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5 },
+        styles: { fontSize: 8, cellPadding: 3.5 }
       });
 
       // Stamp and legal disclaimer footer
       const finalY = (doc as any).lastAutoTable.finalY + 20;
-      doc.setDrawColor(230, 235, 240);
+      doc.setDrawColor(241, 245, 249);
+      doc.setLineWidth(0.2);
       doc.line(14, finalY, 196, finalY);
 
       doc.setFontSize(8);
-      doc.setTextColor(150, 155, 165);
-      doc.text("BillMatrix Ledger Intelligence - Compliance Verification Statement", 14, finalY + 10);
-      doc.text(`Verification Stamp: ${Math.random().toString(36).substring(2, 10).toUpperCase()}`, 14, finalY + 15);
+      doc.setTextColor(148, 163, 184); // Slate 400
+      doc.setFont("helvetica", "normal");
+      doc.text("The report was prepared by the IT department.", 14, finalY + 8);
+      doc.text(`Verification Stamp: ${Math.random().toString(36).substring(2, 10).toUpperCase()}`, 14, finalY + 13);
+      doc.text(`Page 1 of 1`, 196, finalY + 8, { align: 'right' });
 
       doc.save(`BillMatrix_Statement_${bill.provider.replace(/\s+/g, "_")}_${bill.dueDate}.pdf`);
     } catch (err) {
@@ -323,21 +416,45 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
                       />
                     </div>
 
-                    {/* Amount Due */}
-                    <div className="space-y-1.5">
+                    {/* Monthly Limit (Base Amount) with 14% VAT details */}
+                    <div className="space-y-1.5 col-span-1 sm:col-span-2">
                       <label className="block font-mono text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
-                        {language === "AR" ? "المبلغ المستحق" : "Amount Due"}
+                        {t.monthly_limit}
                       </label>
                       <div className="relative flex items-center">
                         <input
                           type="number"
-                          step="0.01"
-                          value={editedAmount}
-                          onChange={(e) => setEditedAmount(parseFloat(e.target.value) || 0)}
+                          step="any"
+                          value={editedBaseAmount}
+                          onChange={(e) => {
+                            const valStr = e.target.value;
+                            setEditedBaseAmount(valStr);
+                            const valNum = parseFloat(valStr) || 0;
+                            setEditedAmount(valNum * 1.14);
+                          }}
                           className="w-full bg-surface border border-outline rounded-xl py-3 px-4 text-xs font-sans font-semibold text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-mono"
+                          placeholder="0.00"
                         />
                         <span className="absolute right-4 font-mono text-[10px] font-bold text-on-surface-variant/60 uppercase">{t.egp}</span>
                       </div>
+
+                      {parseFloat(editedBaseAmount) > 0 && (
+                        <div className="mt-3 p-4 bg-surface rounded-2xl border border-outline/40 text-[11px] space-y-2.5 animate-in fade-in duration-300">
+                          <div className="flex justify-between items-center text-on-surface-variant">
+                            <span className="font-sans font-medium">{language === "AR" ? "المبلغ الأساسي:" : "Base Amount:"}</span>
+                            <span className="font-mono font-bold text-xs">{(parseFloat(editedBaseAmount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[9px] opacity-60 font-semibold">{t.egp}</span></span>
+                          </div>
+                          <div className="flex justify-between items-center text-on-surface-variant">
+                            <span className="font-sans font-medium">{language === "AR" ? "ضريبة القيمة المضافة (14%):" : "VAT (14%):"}</span>
+                            <span className="font-mono font-bold text-xs text-primary">{(parseFloat(editedBaseAmount) * 0.14 || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[9px] opacity-60 font-semibold">{t.egp}</span></span>
+                          </div>
+                          <div className="h-px bg-outline-variant/30 my-1" />
+                          <div className="flex justify-between items-center text-on-surface">
+                            <span className="font-sans font-bold text-xs">{language === "AR" ? "الإجمالي المستحق (شامل الضريبة):" : "Total Due (VAT Incl.):"}</span>
+                            <span className="font-mono font-black text-sm text-primary">{(parseFloat(editedBaseAmount) * 1.14 || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] font-bold">{t.egp}</span></span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Status */}

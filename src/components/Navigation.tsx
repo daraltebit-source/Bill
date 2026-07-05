@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { translations } from "../translations";
 import { cn } from "@/src/lib/utils";
+// @ts-ignore
+import logoImg from "@/src/assets/images/billmatrix_logo_1783237324306.jpg";
 
 interface NavigationProps {
   activeTab: string;
@@ -38,9 +40,9 @@ export const Sidebar: React.FC<NavigationProps> = ({ activeTab, onTabChange, lan
           whileHover={{ scale: 1.08, rotate: 5 }}
           whileTap={{ scale: 0.95 }}
           transition={springConfig}
-          className="w-10 h-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary shadow-sm cursor-pointer transform-gpu will-change-transform"
+          className="w-10 h-10 border border-outline/30 rounded-xl flex items-center justify-center overflow-hidden shadow-sm cursor-pointer transform-gpu will-change-transform"
         >
-          <ReceiptText size={22} strokeWidth={2.5} />
+          <img src={logoImg} alt="BillMatrix Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
         </motion.div>
         <div className="flex flex-col">
           <h1 className="font-headline text-lg font-bold tracking-tighter text-on-surface leading-none uppercase italic">BillMatrix</h1>
@@ -172,9 +174,9 @@ export const TopAppBar: React.FC<NavigationProps> = ({ activeTab, onTabChange, l
           whileHover={{ scale: 1.08, rotate: 5 }}
           whileTap={{ scale: 0.95 }}
           transition={springConfig}
-          className="w-10 h-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary transform-gpu will-change-transform"
+          className="w-10 h-10 border border-outline/30 rounded-xl flex items-center justify-center overflow-hidden transform-gpu will-change-transform"
         >
-          <ReceiptText size={22} strokeWidth={2.5} />
+          <img src={logoImg} alt="BillMatrix Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
         </motion.div>
         <h1 className="font-headline text-lg font-bold text-on-surface tracking-tighter uppercase italic">BillMatrix</h1>
       </div>
